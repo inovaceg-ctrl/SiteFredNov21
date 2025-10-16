@@ -297,6 +297,58 @@ export type Database = {
           },
         ]
       }
+      patient_doctor_messages: {
+        Row: {
+          id: string
+          sender_id: string
+          receiver_id: string
+          appointment_id: string | null
+          content: string
+          created_at: string
+          is_read: boolean
+        }
+        Insert: {
+          id?: string
+          sender_id: string
+          receiver_id: string
+          appointment_id?: string | null
+          content: string
+          created_at?: string
+          is_read?: boolean
+        }
+        Update: {
+          id?: string
+          sender_id?: string
+          receiver_id?: string
+          appointment_id?: string | null
+          content?: string
+          created_at?: string
+          is_read?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_doctor_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_doctor_messages_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_doctor_messages_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -384,6 +436,83 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_sessions: {
+        Row: {
+          appointment_id: string | null
+          answer: Json | null
+          created_at: string
+          doctor_id: string | null
+          ended_at: string | null
+          id: string
+          ice_candidates: Json | null
+          offer: Json | null
+          patient_id: string | null
+          room_id: string
+          started_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          answer?: Json | null
+          created_at?: string
+          doctor_id?: string | null
+          ended_at?: string | null
+          id?: string
+          ice_candidates?: Json | null
+          offer?: Json | null
+          patient_id?: string | null
+          room_id: string
+          started_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          appointment_id?: string | null
+          answer?: Json | null
+          created_at?: string
+          doctor_id?: string | null
+          ended_at?: string | null
+          id?: string
+          ice_candidates?: Json | null
+          offer?: Json | null
+          patient_id?: string | null
+          room_id?: string
+          started_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_sessions_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_sessions_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_sessions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_sessions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"

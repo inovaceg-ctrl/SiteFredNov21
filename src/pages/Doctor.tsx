@@ -5,7 +5,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar as CalendarIcon, Clock, FileText, LogOut, Users, Video, BarChart3, Loader2, Edit, User as UserIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, FileText, LogOut, Users, Video, BarChart3, Loader2, Edit, User as UserIcon, MessageSquare } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
@@ -15,7 +15,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EditPatientDialog } from "@/components/EditPatientDialog";
 import { formatWhatsApp } from "@/lib/format-phone";
-import { DoctorProfileForm } from "@/components/DoctorProfileForm"; // Import the new component
+import { DoctorProfileForm } from "@/components/DoctorProfileForm";
+import { DoctorOnlineConsultationTab } from "@/components/DoctorOnlineConsultationTab"; // Import the new component
 
 const Doctor = () => {
   const navigate = useNavigate();
@@ -234,12 +235,12 @@ const Doctor = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7"> {/* Increased grid-cols to 7 */}
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">
               <BarChart3 className="h-4 w-4 mr-2" />
               Visão Geral
             </TabsTrigger>
-            <TabsTrigger value="profile"> {/* New Profile Tab */}
+            <TabsTrigger value="profile">
               <UserIcon className="h-4 w-4 mr-2" />
               Perfil
             </TabsTrigger>
@@ -259,9 +260,9 @@ const Doctor = () => {
               <FileText className="h-4 w-4 mr-2" />
               Prontuários
             </TabsTrigger>
-            <TabsTrigger value="telemedicine">
-              <Video className="h-4 w-4 mr-2" />
-              Telemedicina
+            <TabsTrigger value="online-consultation"> {/* Renamed tab */}
+              <MessageSquare className="h-4 w-4 mr-2" /> {/* Changed icon to MessageSquare */}
+              Consulta Online
             </TabsTrigger>
           </TabsList>
 
@@ -319,12 +320,12 @@ const Doctor = () => {
                 </CardContent>
               </Card>
 
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab("telemedicine")}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab("online-consultation")}> {/* Updated onClick */}
                 <CardHeader>
                   <Video className="h-8 w-8 mb-2 text-primary" />
-                  <CardTitle>Telemedicina</CardTitle>
+                  <CardTitle>Consulta Online</CardTitle> {/* Updated title */}
                   <CardDescription>
-                    Inicie consultas por vídeo chamada
+                    Inicie consultas por vídeo chamada ou chat
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -347,12 +348,10 @@ const Doctor = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="profile"> {/* New Profile Tab Content */}
+          <TabsContent value="profile">
             <Card>
               <CardContent className="p-6">
                 {user?.id && <DoctorProfileForm userId={user.id} onProfileUpdated={() => {
-                  // Optionally re-fetch user data or update local state if needed
-                  // For now, just a toast is sufficient as the form handles its own state
                   console.log("Doctor profile updated!");
                 }} />}
               </CardContent>
@@ -570,21 +569,8 @@ const Doctor = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="telemedicine">
-            <Card>
-              <CardHeader>
-                <CardTitle>Telemedicina</CardTitle>
-                <CardDescription>
-                  Funcionalidade de videochamada em desenvolvimento
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-8 text-center">
-                <Video className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">
-                  Em breve você poderá realizar consultas por vídeo chamada
-                </p>
-              </CardContent>
-            </Card>
+          <TabsContent value="online-consultation"> {/* Updated tab content */}
+            {user && <DoctorOnlineConsultationTab currentUserId={user.id} />}
           </TabsContent>
         </Tabs>
       </main>

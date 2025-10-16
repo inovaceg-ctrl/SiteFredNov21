@@ -5,12 +5,13 @@ import { Session, User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, FileText, LogOut, Video, LayoutGrid } from "lucide-react";
+import { Calendar, Clock, FileText, LogOut, Video, LayoutGrid, MessageSquare } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { OnlineConsultationTab } from "@/components/OnlineConsultationTab"; // Import the new component
 
 const Patient = () => {
   const navigate = useNavigate();
@@ -179,9 +180,9 @@ const Patient = () => {
               <Clock className="h-4 w-4 mr-2" />
               Consultas
             </TabsTrigger>
-            <TabsTrigger value="telemedicine">
-              <Video className="h-4 w-4 mr-2" />
-              Telemedicina
+            <TabsTrigger value="online-consultation"> {/* Renamed tab */}
+              <MessageSquare className="h-4 w-4 mr-2" /> {/* Changed icon to MessageSquare */}
+              Consulta Online
             </TabsTrigger>
             <TabsTrigger value="documents">
               <FileText className="h-4 w-4 mr-2" />
@@ -217,16 +218,16 @@ const Patient = () => {
                 </CardContent>
               </Card>
 
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab("telemedicine")}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab("online-consultation")}> {/* Updated onClick */}
                 <CardHeader>
                   <Video className="h-8 w-8 mb-2 text-primary" />
-                  <CardTitle>Telemedicina</CardTitle>
+                  <CardTitle>Consulta Online</CardTitle> {/* Updated title */}
                   <CardDescription>
-                    Inicie uma consulta por vídeo chamada
+                    Inicie uma consulta por vídeo chamada ou chat
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button className="w-full" variant="outline">Entrar na Sala</Button>
+                  <Button className="w-full" variant="outline">Iniciar Consulta</Button>
                 </CardContent>
               </Card>
 
@@ -360,22 +361,8 @@ const Patient = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="telemedicine">
-            <Card>
-              <CardHeader>
-                <CardTitle>Telemedicina</CardTitle>
-                <CardDescription>Consultas por videochamada</CardDescription>
-              </CardHeader>
-              <CardContent className="p-8 text-center">
-                <Video className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground mb-4">
-                  Funcionalidade de videochamada em desenvolvimento
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Em breve você poderá realizar consultas por vídeo
-                </p>
-              </CardContent>
-            </Card>
+          <TabsContent value="online-consultation"> {/* Updated tab content */}
+            {user && <OnlineConsultationTab currentUserId={user.id} />}
           </TabsContent>
 
           <TabsContent value="documents">

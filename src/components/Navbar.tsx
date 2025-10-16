@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X, Instagram, LogIn, LogOut } from "lucide-react";
+import { Menu, X, Instagram, LogIn, LogOut, MessageSquare } from "lucide-react"; // Added MessageSquare
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
