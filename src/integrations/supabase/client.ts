@@ -15,3 +15,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   }
 });
+
+// Pequena alteração para forçar a reavaliação do módulo
+export const _supabaseClientRefresh = true;
