@@ -2,8 +2,13 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_URL_BASE = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+// Adiciona um parâmetro de cache-busting em desenvolvimento para forçar a reavaliação do esquema
+const SUPABASE_URL = import.meta.env.MODE === 'development'
+  ? `${SUPABASE_URL_BASE}?t=${Date.now()}`
+  : SUPABASE_URL_BASE;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
