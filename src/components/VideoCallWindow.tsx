@@ -63,11 +63,25 @@ export const VideoCallWindow: React.FC<VideoCallWindowProps> = ({
 
     peerConnection.current.onicecandidate = async (event) => {
       if (event.candidate && sessionId) {
+        // Fetch current ice_candidates to append, not overwrite
+        const { data: currentSession, error: fetchError } = await supabase
+          .from("video_sessions")
+          .select("ice_candidates")
+          .eq("id", sessionId)
+          .single();
+
+        if (fetchError) {
+          console.error("Error fetching current ICE candidates:", fetchError);
+          return;
+        }
+
+        const existingCandidates = (currentSession?.ice_candidates || []) as any[];
+        const updatedCandidates = [...existingCandidates, event.candidate.toJSON()];
+
         await supabase
           .from("video_sessions")
           .update({
-            ice_candidates: (peerConnection.current?.localDescription?.sdp ? JSON.parse(peerConnection.current.localDescription.sdp) : [])
-              .concat(event.candidate.toJSON()),
+            ice_candidates: updatedCandidates,
           })
           .eq("id", sessionId);
       }
@@ -112,13 +126,15 @@ export const VideoCallWindow: React.FC<VideoCallWindowProps> = ({
       room_id: newSessionId,
       status: "ringing",
       appointment_id: appointmentId,
+      ice_candidates: [], // Initialize with empty array
     });
 
     if (error) {
       console.error("Error creating video session:", error);
+      console.error("Supabase insert error details:", error.message, error.details, error.hint, error.code);
       toast({
         title: "Erro",
-        description: "Não foi possível iniciar a chamada.",
+        description: `Não foi possível iniciar a chamada. Detalhes: ${error.message || "Verifique o console para mais informações."}`,
         variant: "destructive",
       });
       setCallStatus("idle");
