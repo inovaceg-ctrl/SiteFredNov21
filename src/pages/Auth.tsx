@@ -15,6 +15,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [signupRole, setSignupRole] = useState("patient"); // State to manage selected role
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -49,6 +50,7 @@ const Auth = () => {
     const password = formData.get("signup-password") as string;
     const fullName = formData.get("signup-name") as string;
     const role = formData.get("signup-role") as string;
+    const specialty = formData.get("signup-specialty") as string; // Get specialty
 
     const redirectUrl = `${window.location.origin}/`;
 
@@ -60,6 +62,7 @@ const Auth = () => {
         data: {
           full_name: fullName,
           role: role,
+          specialty: specialty, // Pass specialty to Supabase
         },
       },
     });
@@ -188,11 +191,24 @@ const Auth = () => {
                     name="signup-role"
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     required
+                    value={signupRole}
+                    onChange={(e) => setSignupRole(e.target.value)}
                   >
                     <option value="patient">Paciente</option>
                     <option value="doctor">Médico</option>
                   </select>
                 </div>
+                {signupRole === "doctor" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-specialty">Especialidade (Opcional)</Label>
+                    <Input
+                      id="signup-specialty"
+                      name="signup-specialty"
+                      type="text"
+                      placeholder="Ex: Psicanalista, Terapeuta"
+                    />
+                  </div>
+                )}
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Criando..." : "Criar Conta"}
                 </Button>

@@ -5,7 +5,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar as CalendarIcon, Clock, FileText, LogOut, Users, Video, BarChart3, Loader2, Edit } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, FileText, LogOut, Users, Video, BarChart3, Loader2, Edit, User as UserIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EditPatientDialog } from "@/components/EditPatientDialog";
 import { formatWhatsApp } from "@/lib/format-phone";
+import { DoctorProfileForm } from "@/components/DoctorProfileForm"; // Import the new component
 
 const Doctor = () => {
   const navigate = useNavigate();
@@ -233,10 +234,14 @@ const Doctor = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7"> {/* Increased grid-cols to 7 */}
             <TabsTrigger value="overview">
               <BarChart3 className="h-4 w-4 mr-2" />
               Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="profile"> {/* New Profile Tab */}
+              <UserIcon className="h-4 w-4 mr-2" />
+              Perfil
             </TabsTrigger>
             <TabsTrigger value="schedule">
               <CalendarIcon className="h-4 w-4 mr-2" />
@@ -262,6 +267,19 @@ const Doctor = () => {
 
           <TabsContent value="overview" className="space-y-4">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab("profile")}>
+                <CardHeader>
+                  <UserIcon className="h-8 w-8 mb-2 text-primary" />
+                  <CardTitle>Meu Perfil</CardTitle>
+                  <CardDescription>
+                    Atualize seus dados pessoais e especialidade
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full">Editar Perfil</Button>
+                </CardContent>
+              </Card>
+
               <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab("schedule")}>
                 <CardHeader>
                   <CalendarIcon className="h-8 w-8 mb-2 text-primary" />
@@ -326,20 +344,19 @@ const Doctor = () => {
                   <Button className="w-full" variant="outline">Ver Prontuários</Button>
                 </CardContent>
               </Card>
-
-              <Card className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <BarChart3 className="h-8 w-8 mb-2 text-primary" />
-                  <CardTitle>Relatórios</CardTitle>
-                  <CardDescription>
-                    Visualize estatísticas e relatórios
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button className="w-full" variant="outline">Em Breve</Button>
-                </CardContent>
-              </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="profile"> {/* New Profile Tab Content */}
+            <Card>
+              <CardContent className="p-6">
+                {user?.id && <DoctorProfileForm userId={user.id} onProfileUpdated={() => {
+                  // Optionally re-fetch user data or update local state if needed
+                  // For now, just a toast is sufficient as the form handles its own state
+                  console.log("Doctor profile updated!");
+                }} />}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="schedule">

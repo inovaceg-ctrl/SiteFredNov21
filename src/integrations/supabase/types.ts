@@ -308,6 +308,7 @@ export type Database = {
           id: string
           neighborhood: string | null
           phone: string | null
+          specialty: string | null
           state: string | null
           street: string | null
           street_number: string | null
@@ -325,6 +326,7 @@ export type Database = {
           id: string
           neighborhood?: string | null
           phone?: string | null
+          specialty?: string | null
           state?: string | null
           street?: string | null
           street_number?: string | null
@@ -342,6 +344,7 @@ export type Database = {
           id?: string
           neighborhood?: string | null
           phone?: string | null
+          specialty?: string | null
           state?: string | null
           street?: string | null
           street_number?: string | null
