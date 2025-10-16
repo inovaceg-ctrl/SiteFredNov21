@@ -15,3 +15,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   }
 });
+
+// Adicionado para forçar a atualização do cache do esquema do cliente Supabase.
