@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Menu, X, Instagram, LogIn, LogOut, MessageSquare } from "lucide-react"; // Added MessageSquare
+import { Menu, X, Instagram, LogIn, LogOut, MessageSquare } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -127,7 +127,7 @@ const Navbar = () => {
               variant="ghost"
               className="font-medium"
             >
-              Portal do Médico
+              Portal do Profissional
             </Button>
           )}
           {user && userRole === 'patient' && (
@@ -244,7 +244,7 @@ const Navbar = () => {
                 variant="ghost"
                 className="font-medium w-full justify-start text-lg"
               >
-                Portal do Médico
+                Portal do Profissional
               </Button>
             )}
             {user && userRole === 'patient' && (

@@ -16,7 +16,7 @@ import { ptBR } from "date-fns/locale";
 import { EditPatientDialog } from "@/components/EditPatientDialog";
 import { formatWhatsApp } from "@/lib/format-phone";
 import { DoctorProfileForm } from "@/components/DoctorProfileForm";
-import { DoctorOnlineConsultationTab } from "@/components/DoctorOnlineConsultationTab"; // Import the new component
+import { DoctorOnlineConsultationTab } from "@/components/DoctorOnlineConsultationTab";
 
 const Doctor = () => {
   const navigate = useNavigate();
@@ -223,9 +223,9 @@ const Doctor = () => {
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold">Portal do Médico</h1>
+            <h1 className="text-3xl font-bold">Portal do Profissional</h1>
             <p className="text-muted-foreground mt-2">
-              Bem-vindo(a), Dr(a). {user?.user_metadata?.full_name || user?.email}
+              Bem-vindo(a), {user?.user_metadata?.full_name || user?.email}
             </p>
           </div>
           <Button variant="outline" onClick={handleSignOut}>
@@ -260,8 +260,8 @@ const Doctor = () => {
               <FileText className="h-4 w-4 mr-2" />
               Prontuários
             </TabsTrigger>
-            <TabsTrigger value="online-consultation"> {/* Renamed tab */}
-              <MessageSquare className="h-4 w-4 mr-2" /> {/* Changed icon to MessageSquare */}
+            <TabsTrigger value="online-consultation">
+              <MessageSquare className="h-4 w-4 mr-2" />
               Consulta Online
             </TabsTrigger>
           </TabsList>
@@ -320,10 +320,10 @@ const Doctor = () => {
                 </CardContent>
               </Card>
 
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab("online-consultation")}> {/* Updated onClick */}
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab("online-consultation")}>
                 <CardHeader>
                   <Video className="h-8 w-8 mb-2 text-primary" />
-                  <CardTitle>Consulta Online</CardTitle> {/* Updated title */}
+                  <CardTitle>Consulta Online</CardTitle>
                   <CardDescription>
                     Inicie consultas por vídeo chamada ou chat
                   </CardDescription>
@@ -569,7 +569,7 @@ const Doctor = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="online-consultation"> {/* Updated tab content */}
+          <TabsContent value="online-consultation">
             {user && <DoctorOnlineConsultationTab currentUserId={user.id} />}
           </TabsContent>
         </Tabs>
