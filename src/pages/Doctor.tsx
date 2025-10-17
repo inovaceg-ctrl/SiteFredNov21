@@ -273,7 +273,7 @@ const Doctor = () => {
                   <UserIcon className="h-8 w-8 mb-2 text-primary" />
                   <CardTitle>Meu Perfil</CardTitle>
                   <CardDescription>
-                    Atualize seus dados pessoais e especialidade
+                    Atualize seus dados pessoais
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
