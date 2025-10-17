@@ -50,7 +50,6 @@ const Auth = () => {
     const password = formData.get("signup-password") as string;
     const fullName = formData.get("signup-name") as string;
     const role = formData.get("signup-role") as string;
-    // const specialty = formData.get("signup-specialty") as string; // Removido o campo specialty
 
     const redirectUrl = `${window.location.origin}/`;
 
@@ -62,7 +61,6 @@ const Auth = () => {
         data: {
           full_name: fullName,
           role: role,
-          // specialty: specialty, // Removido o campo specialty
         },
       },
     });
@@ -198,19 +196,6 @@ const Auth = () => {
                     <option value="doctor">Médico</option>
                   </select>
                 </div>
-                {signupRole === "doctor" && (
-                  // Removido o campo specialty
-                  // <div className="space-y-2">
-                  //   <Label htmlFor="signup-specialty">Especialidade (Opcional)</Label>
-                  //   <Input
-                  //     id="signup-specialty"
-                  //     name="signup-specialty"
-                  //     type="text"
-                  //     placeholder="Ex: Psicanalista, Terapeuta"
-                  //   />
-                  // </div>
-                  <></>
-                )}
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Criando..." : "Criar Conta"}
                 </Button>
