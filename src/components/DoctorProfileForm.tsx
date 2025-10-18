@@ -19,6 +19,7 @@ const profileSchema = z.object({
   phone: z.string().optional(),
   whatsapp: z.string().optional(),
   birth_date: z.string().optional(),
+  // specialty: z.string().optional(), // Removido o campo specialty
   street: z.string().optional(),
   street_number: z.string().optional(),
   neighborhood: z.string().optional(),
@@ -47,6 +48,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
       phone: "",
       whatsapp: "",
       birth_date: "",
+      // specialty: "", // Removido o campo specialty
       street: "",
       street_number: "",
       neighborhood: "",
@@ -77,6 +79,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
           phone: data.phone ? formatWhatsApp(data.phone) : "",
           whatsapp: data.whatsapp ? formatWhatsApp(data.whatsapp) : "",
           birth_date: data.birth_date ? format(new Date(data.birth_date), "yyyy-MM-dd") : "",
+          // specialty: data.specialty || "", // Removido o campo specialty
           street: data.street || "",
           street_number: data.street_number || "",
           neighborhood: data.neighborhood || "",
@@ -121,6 +124,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
         phone: values.phone ? unformatPhone(values.phone) : null,
         whatsapp: values.whatsapp ? unformatPhone(values.whatsapp) : null,
         birth_date: values.birth_date || null,
+        // specialty: values.specialty || null, // Removido o campo specialty
         street: values.street || null,
         street_number: values.street_number || null,
         neighborhood: values.neighborhood || null,
@@ -174,6 +178,23 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
               </FormItem>
             )}
           />
+
+          {/* Removido o campo specialty */}
+          {/*
+          <FormField
+            control={form.control}
+            name="specialty"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Especialidade</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ex: Psicanalista, Terapeuta" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          */}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
