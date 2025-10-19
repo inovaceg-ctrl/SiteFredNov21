@@ -13,31 +13,43 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { useToast } from "@/hooks/use-toast"; // Importar useToast
+import { useToast } from "@/hooks/use-toast";
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const navigate = useNavigate();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const { toast } = useToast(); // Inicializar useToast
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchUserRole = async (userId: string) => {
+      console.log("Navbar: Tentando buscar a função (role) para o userId:", userId);
       const { data, error } = await (supabase as any)
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .maybeSingle();
       
-      if (!error && data) {
+      if (error) {
+        console.error("Navbar: Erro ao buscar a função do usuário:", error);
+        toast({
+          title: "Erro ao carregar função do usuário",
+          description: error.message,
+          variant: "destructive",
+        });
+        setUserRole(null);
+      } else if (data) {
+        console.log("Navbar: Função do usuário encontrada:", data.role);
         setUserRole(data.role);
       } else {
+        console.log("Navbar: Nenhuma função encontrada para o usuário:", userId);
         setUserRole(null);
       }
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Navbar: Verificação inicial da sessão. Sessão:", session);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserRole(session.user.id);
@@ -47,6 +59,7 @@ const Navbar = () => {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("Navbar: Estado de autenticação alterado. Evento:", _event, "Sessão:", session);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserRole(session.user.id);
