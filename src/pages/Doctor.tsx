@@ -20,7 +20,7 @@ import { DoctorOnlineConsultationTab } from "@/components/DoctorOnlineConsultati
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Database } from "@/integrations/supabase/types"; // Import Database type
-import { WhatsappTranscriptionsPage } from "@/components/WhatsappTranscriptionsPage"; // Importar o componente WhatsappTranscriptionsPage
+import { WhatsappTranscriptionsPage } from "@/pages/WhatsappTranscriptionsPage"; // Caminho de importação CORRIGIDO
 
 const Doctor = () => {
   const navigate = useNavigate();
