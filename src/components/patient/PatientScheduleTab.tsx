@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { User } from "@supabase/supabase-js";
+import { Loader2 } from "lucide-react"; // Import Loader2
 
 interface PatientScheduleTabProps {
   user: User;
@@ -29,9 +30,13 @@ export const PatientScheduleTab: React.FC<PatientScheduleTabProps> = ({ user, se
   const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<AvailabilitySlot[]>([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(true); // New loading state for doctors
+  const [loadingSlots, setLoadingSlots] = useState(false); // New loading state for slots
+  const [bookingLoading, setBookingLoading] = useState<string | null>(null); // Loading state for individual slot booking
   const { toast } = useToast();
 
   const fetchDoctors = useCallback(async () => {
+    setLoadingDoctors(true); // Set loading true
     const { data: doctorsData, error } = await supabase
       .rpc('get_doctors_public');
     
@@ -53,9 +58,11 @@ export const PatientScheduleTab: React.FC<PatientScheduleTabProps> = ({ user, se
         variant: "default",
       });
     }
+    setLoadingDoctors(false); // Set loading false
   }, [toast]);
 
   const fetchAvailableSlots = useCallback(async (doctorId: string) => {
+    setLoadingSlots(true); // Set loading true
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const startOfTodayISO = today.toISOString();
@@ -76,6 +83,7 @@ export const PatientScheduleTab: React.FC<PatientScheduleTabProps> = ({ user, se
     } else {
       setAvailableSlots(data || []);
     }
+    setLoadingSlots(false); // Set loading false
   }, [toast]);
 
   useEffect(() => {
@@ -100,6 +108,8 @@ export const PatientScheduleTab: React.FC<PatientScheduleTabProps> = ({ user, se
       return;
     }
 
+    setBookingLoading(slotId); // Set loading for this specific slot
+
     // Step 1: Atomically mark the slot as unavailable ONLY IF it's currently available
     const { data: updatedSlot, error: updateSlotError } = await supabase
       .from('availability_slots')
@@ -116,6 +126,7 @@ export const PatientScheduleTab: React.FC<PatientScheduleTabProps> = ({ user, se
         variant: "destructive",
       });
       fetchAvailableSlots(selectedDoctor);
+      setBookingLoading(null);
       return;
     }
 
@@ -126,6 +137,7 @@ export const PatientScheduleTab: React.FC<PatientScheduleTabProps> = ({ user, se
         variant: "destructive",
       });
       fetchAvailableSlots(selectedDoctor);
+      setBookingLoading(null);
       return;
     }
 
@@ -164,6 +176,7 @@ export const PatientScheduleTab: React.FC<PatientScheduleTabProps> = ({ user, se
       setSelectedDoctor(null); // Clear selected doctor to reset the view
       setAvailableSlots([]); // Clear available slots
     }
+    setBookingLoading(null); // Clear loading state
   }, [user, selectedDoctor, toast, fetchAvailableSlots, onAppointmentBooked, setActiveTab]);
 
   return (
@@ -174,19 +187,25 @@ export const PatientScheduleTab: React.FC<PatientScheduleTabProps> = ({ user, se
           <CardDescription>Escolha o médico para ver os horários disponíveis</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">
-          {doctors.map((doctor) => (
-            <Button
-              key={doctor.id}
-              variant={selectedDoctor === doctor.id ? "default" : "outline"}
-              className="w-full justify-start"
-              onClick={() => {
-                setSelectedDoctor(doctor.id);
-              }}
-            >
-              {doctor.full_name} {doctor.specialty && `(${doctor.specialty})`}
-            </Button>
-          ))}
-          {doctors.length === 0 && (
+          {loadingDoctors ? (
+            <div className="flex justify-center p-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : (
+            doctors.map((doctor) => (
+              <Button
+                key={doctor.id}
+                variant={selectedDoctor === doctor.id ? "default" : "outline"}
+                className="w-full justify-start"
+                onClick={() => {
+                  setSelectedDoctor(doctor.id);
+                }}
+              >
+                {doctor.full_name} {doctor.specialty && `(${doctor.specialty})`}
+              </Button>
+            ))
+          )}
+          {!loadingDoctors && doctors.length === 0 && (
             <p className="text-muted-foreground text-center py-4">
               Nenhum médico disponível no momento.
             </p>
@@ -201,28 +220,39 @@ export const PatientScheduleTab: React.FC<PatientScheduleTabProps> = ({ user, se
             <CardDescription>Selecione um horário para agendar</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {availableSlots.map((slot) => (
-              <div
-                key={slot.id}
-                className="flex items-center justify-between p-3 border rounded-lg"
-              >
-                <div>
-                  <p className="font-medium">
-                    {format(new Date(slot.start_time), "dd 'de' MMMM", { locale: ptBR })}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {format(new Date(slot.start_time), "HH:mm")} - {format(new Date(slot.end_time), "HH:mm")}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => bookAppointment(slot.id, slot.start_time, slot.end_time)}
-                >
-                  Agendar
-                </Button>
+            {loadingSlots ? (
+              <div className="flex justify-center p-4">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
-            ))}
-            {availableSlots.length === 0 && (
+            ) : (
+              availableSlots.map((slot) => (
+                <div
+                  key={slot.id}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {format(new Date(slot.start_time), "dd 'de' MMMM", { locale: ptBR })}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(slot.start_time), "HH:mm")} - {format(new Date(slot.end_time), "HH:mm")}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => bookAppointment(slot.id, slot.start_time, slot.end_time)}
+                    disabled={bookingLoading === slot.id} // Disable button while booking this slot
+                  >
+                    {bookingLoading === slot.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Agendar"
+                    )}
+                  </Button>
+                </div>
+              ))
+            )}
+            {!loadingSlots && availableSlots.length === 0 && (
               <p className="text-muted-foreground text-center py-4">
                 Nenhum horário disponível para este médico.
               </p>
