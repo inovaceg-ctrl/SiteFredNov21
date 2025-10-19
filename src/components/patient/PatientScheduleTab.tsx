@@ -146,63 +146,45 @@ export const PatientScheduleTab: React.FC<PatientScheduleTabProps> = ({ user, se
 
     setBookingLoading(slotId); // Set loading for this specific slot
 
-    // Step 1: Atomically mark the slot as unavailable ONLY IF it's currently available
-    const { data: updatedSlot, error: updateSlotError } = await supabase
-      .from('availability_slots')
-      .update({ is_available: false })
-      .eq('id', slotId)
-      .eq('is_available', true)
-      .select();
+    // Optimistic UI update: Immediately remove the slot from the UI
+    const originalAvailableSlots = availableSlots;
+    setAvailableSlots(prev => prev.filter(slot => slot.id !== slotId));
 
-    if (updateSlotError) {
-      console.error("PatientScheduleTab: Error updating slot availability:", updateSlotError);
-      toast({
-        title: "Erro",
-        description: "Não foi possível reservar o horário devido a um erro no sistema. Tente novamente.",
-        variant: "destructive",
-      });
-      fetchAvailableSlots(selectedDoctor);
-      setBookingLoading(null);
-      return;
-    }
-
-    if (!updatedSlot || updatedSlot.length === 0) {
-      toast({
-        title: "Horário Indisponível",
-        description: "Este horário acabou de ser reservado por outra pessoa. Por favor, escolha outro.",
-        variant: "destructive",
-      });
-      fetchAvailableSlots(selectedDoctor);
-      setBookingLoading(null);
-      return;
-    }
-
-    // Step 2: If the slot was successfully marked as unavailable, proceed to create the appointment
-    const { data: appointmentData, error: appointmentError } = await supabase
-      .from('appointments')
-      .insert({
-        patient_id: user.id,
-        doctor_id: selectedDoctor,
-        slot_id: slotId,
-        start_time: startTime,
-        end_time: endTime,
-        status: 'pending'
-      })
-      .select();
-
-    if (appointmentError) {
-      console.error("PatientScheduleTab: Error booking appointment:", appointmentError);
-      await supabase
+    try {
+      // Step 1: Atomically mark the slot as unavailable ONLY IF it's currently available
+      const { data: updatedSlot, error: updateSlotError } = await supabase
         .from('availability_slots')
-        .update({ is_available: true })
-        .eq('id', slotId);
-      toast({
-        title: "Erro",
-        description: appointmentError.message || "Não foi possível agendar a consulta. O horário foi liberado.",
-        variant: "destructive",
-      });
-      fetchAvailableSlots(selectedDoctor);
-    } else {
+        .update({ is_available: false })
+        .eq('id', slotId)
+        .eq('is_available', true)
+        .select();
+
+      if (updateSlotError) {
+        throw updateSlotError; // Throw to be caught by the catch block
+      }
+
+      if (!updatedSlot || updatedSlot.length === 0) {
+        // This means the slot was already unavailable or didn't exist
+        throw new Error("Este horário acabou de ser reservado por outra pessoa. Por favor, escolha outro.");
+      }
+
+      // Step 2: If the slot was successfully marked as unavailable, proceed to create the appointment
+      const { data: appointmentData, error: appointmentError } = await supabase
+        .from('appointments')
+        .insert({
+          patient_id: user.id,
+          doctor_id: selectedDoctor,
+          slot_id: slotId,
+          start_time: startTime,
+          end_time: endTime,
+          status: 'pending'
+        })
+        .select();
+
+      if (appointmentError) {
+        throw appointmentError; // Throw to be caught by the catch block
+      }
+
       toast({
         title: "Consulta Agendada!",
         description: "Sua consulta foi agendada e está aguardando a confirmação do doutor.",
@@ -211,9 +193,30 @@ export const PatientScheduleTab: React.FC<PatientScheduleTabProps> = ({ user, se
       setActiveTab("appointments");
       setSelectedDoctor(null); // Clear selected doctor to reset the view
       setAvailableSlots([]); // Clear available slots
+    } catch (error: any) {
+      console.error("PatientScheduleTab: Error booking appointment:", error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível agendar a consulta. O horário foi liberado.",
+        variant: "destructive",
+      });
+
+      // Revert optimistic update: Add the slot back if booking failed
+      setAvailableSlots(originalAvailableSlots);
+
+      // Attempt to revert slot availability in DB if appointment creation failed
+      if (error.message !== "Este horário acabou de ser reservado por outra pessoa. Por favor, escolha outro.") {
+        // Only revert if the error wasn't due to the slot already being taken
+        await supabase
+          .from('availability_slots')
+          .update({ is_available: true })
+          .eq('id', slotId);
+      }
+      fetchAvailableSlots(selectedDoctor); // Re-fetch to ensure consistency
+    } finally {
+      setBookingLoading(null); // Clear loading state
     }
-    setBookingLoading(null); // Clear loading state
-  }, [user, selectedDoctor, toast, fetchAvailableSlots, onAppointmentBooked, setActiveTab]);
+  }, [user, selectedDoctor, toast, availableSlots, fetchAvailableSlots, onAppointmentBooked, setActiveTab]);
 
   return (
     <div className="space-y-4">
