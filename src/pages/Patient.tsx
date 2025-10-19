@@ -187,7 +187,7 @@ const Patient = () => {
 
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-2 gap-2 w-full md:flex md:flex-nowrap md:justify-start">
+          <TabsList className="grid grid-cols-1 gap-2 w-full md:flex md:flex-nowrap md:justify-start">
             <TabsTrigger value="overview" className="w-full px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
               <LayoutGrid className="h-4 w-4 mr-2" />
               Início
