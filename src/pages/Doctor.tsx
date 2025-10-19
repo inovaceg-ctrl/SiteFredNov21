@@ -20,6 +20,7 @@ import { DoctorOnlineConsultationTab } from "@/components/DoctorOnlineConsultati
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Database } from "@/integrations/supabase/types"; // Import Database type
+import { WhatsappTranscriptionsPage } from "@/components/WhatsappTranscriptionsPage"; // Importar o componente WhatsappTranscriptionsPage
 
 const Doctor = () => {
   const navigate = useNavigate();
@@ -788,17 +789,13 @@ const Doctor = () => {
                               <div className="flex items-start gap-2">
                                 <span className="font-medium text-muted-foreground flex-shrink-0">Endereço:</span>
                                 <span className="flex-grow">
-                                  {(patient.street || patient.city || patient.state) ? (
-                                    <>
-                                      {[
+                                  {[
                                         patient.street && `${patient.street}${patient.street_number ? ', ' + patient.street_number : ''}`,
                                         patient.neighborhood,
                                         patient.city,
                                         patient.state
                                       ].filter(Boolean).join(' - ')}
                                       {patient.zip_code && ` - CEP: ${patient.zip_code}`}
-                                    </>
-                                  ) : '-'}
                                 </span>
                               </div>
                             </div>
