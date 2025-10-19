@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +18,7 @@ import Redirect from "./pages/Redirect";
 import Auth from "./pages/Auth";
 import Patient from "./pages/Patient";
 import Doctor from "./pages/Doctor";
+import { WhatsappTranscriptionsPage } from "./pages/WhatsappTranscriptionsPage"; // Importar a nova página
 
 const queryClient = new QueryClient();
 
@@ -37,6 +37,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/doctor" element={<Doctor />} />
           <Route path="/patient" element={<Patient />} />
+          <Route path="/whatsapp-transcriptions" element={<WhatsappTranscriptionsPage />} /> {/* Nova rota */}
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/license-disclosure" element={<LicenseDisclosure />} />

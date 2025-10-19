@@ -5,7 +5,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar as CalendarIcon, Clock, FileText, LogOut, Users, Video, BarChart3, Loader2, Edit, User as UserIcon, MessageSquare, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, FileText, LogOut, Users, Video, BarChart3, Loader2, Edit, User as UserIcon, MessageSquare, Trash2, CheckCircle, XCircle, MessageSquareText } from "lucide-react"; // Adicionado MessageSquareText
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
@@ -459,6 +459,10 @@ const Doctor = () => {
               <MessageSquare className="h-4 w-4 mr-2" />
               Consulta Online
             </TabsTrigger>
+            <TabsTrigger value="whatsapp-transcriptions" className="px-3 py-2 text-sm whitespace-nowrap md:w-auto md:px-6 md:py-3 md:text-base">
+              <MessageSquareText className="h-4 w-4 mr-2" />
+              Transcrições WhatsApp
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -538,6 +542,19 @@ const Doctor = () => {
                 </CardHeader>
                 <CardContent>
                   <Button className="w-full" variant="outline">Ver Prontuários</Button>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/whatsapp-transcriptions")}>
+                <CardHeader>
+                  <MessageSquareText className="h-8 w-8 mb-2 text-primary" />
+                  <CardTitle>Transcrições WhatsApp</CardTitle>
+                  <CardDescription>
+                    Gerencie prints de conversas do WhatsApp
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full" variant="outline">Ver Transcrições</Button>
                 </CardContent>
               </Card>
             </div>
@@ -822,6 +839,10 @@ const Doctor = () => {
 
           <TabsContent value="online-consultation">
             {user && <DoctorOnlineConsultationTab currentUserId={user.id} />}
+          </TabsContent>
+
+          <TabsContent value="whatsapp-transcriptions">
+            <WhatsappTranscriptionsPage />
           </TabsContent>
         </Tabs>
       </main>
