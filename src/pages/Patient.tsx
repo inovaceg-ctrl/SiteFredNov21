@@ -11,7 +11,7 @@ import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { OnlineConsultationTab } from "@/components/OnlineConsultationTab"; // Import the new component
+import { OnlineConsultationTab } from "@/components/OnlineConsultationTab";
 
 const Patient = () => {
   const navigate = useNavigate();
@@ -23,6 +23,7 @@ const Patient = () => {
   const [doctors, setDoctors] = useState<any[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [patientProfile, setPatientProfile] = useState<any>(null); // Novo estado para o perfil do paciente
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,6 +32,9 @@ const Patient = () => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        if (session?.user) {
+          fetchPatientProfile(session.user.id);
+        }
       }
     );
 
@@ -38,10 +42,25 @@ const Patient = () => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) {
+        fetchPatientProfile(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const fetchPatientProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (!error && data) {
+      setPatientProfile(data);
+    }
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -156,7 +175,8 @@ const Patient = () => {
           <div>
             <h1 className="text-3xl font-bold">Portal do Paciente</h1>
             <p className="text-muted-foreground mt-2">
-              Bem-vindo(a), {user?.user_metadata?.full_name || user?.email}
+              {/* Agora usamos o nome do perfil do paciente */}
+              Bem-vindo(a), {patientProfile?.full_name || user?.user_metadata?.full_name || user?.email}
             </p>
           </div>
           <Button variant="outline" onClick={handleSignOut}>
@@ -180,8 +200,8 @@ const Patient = () => {
               <Clock className="h-4 w-4 mr-2" />
               Consultas
             </TabsTrigger>
-            <TabsTrigger value="online-consultation"> {/* Renamed tab */}
-              <MessageSquare className="h-4 w-4 mr-2" /> {/* Changed icon to MessageSquare */}
+            <TabsTrigger value="online-consultation">
+              <MessageSquare className="h-4 w-4 mr-2" />
               Consulta Online
             </TabsTrigger>
             <TabsTrigger value="documents">
@@ -218,10 +238,10 @@ const Patient = () => {
                 </CardContent>
               </Card>
 
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab("online-consultation")}> {/* Updated onClick */}
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab("online-consultation")}>
                 <CardHeader>
                   <Video className="h-8 w-8 mb-2 text-primary" />
-                  <CardTitle>Consulta Online</CardTitle> {/* Updated title */}
+                  <CardTitle>Consulta Online</CardTitle>
                   <CardDescription>
                     Inicie uma consulta por vídeo chamada ou chat
                   </CardDescription>
@@ -361,7 +381,7 @@ const Patient = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="online-consultation"> {/* Updated tab content */}
+          <TabsContent value="online-consultation">
             {user && <OnlineConsultationTab currentUserId={user.id} />}
           </TabsContent>
 

@@ -31,6 +31,7 @@ const Doctor = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [doctorProfile, setDoctorProfile] = useState<any>(null); // Novo estado para o perfil do médico
   const { toast } = useToast();
 
   useEffect(() => {
@@ -39,6 +40,9 @@ const Doctor = () => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        if (session?.user) {
+          fetchDoctorProfile(session.user.id);
+        }
       }
     );
 
@@ -46,10 +50,25 @@ const Doctor = () => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) {
+        fetchDoctorProfile(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const fetchDoctorProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (!error && data) {
+      setDoctorProfile(data);
+    }
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -225,7 +244,8 @@ const Doctor = () => {
           <div>
             <h1 className="text-3xl font-bold">Portal do Profissional</h1>
             <p className="text-muted-foreground mt-2">
-              Bem-vindo(a), {user?.user_metadata?.full_name || user?.email}
+              {/* Agora usamos o nome do perfil do médico */}
+              Bem-vindo(a), {doctorProfile?.full_name || user?.user_metadata?.full_name || user?.email}
             </p>
           </div>
           <Button variant="outline" onClick={handleSignOut}>
@@ -353,6 +373,7 @@ const Doctor = () => {
               <CardContent className="p-6">
                 {user?.id && <DoctorProfileForm userId={user.id} onProfileUpdated={() => {
                   console.log("Doctor profile updated!");
+                  fetchDoctorProfile(user.id); // Atualiza o perfil após a edição
                 }} />}
               </CardContent>
             </Card>

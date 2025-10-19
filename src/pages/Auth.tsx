@@ -15,7 +15,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [signupRole, setSignupRole] = useState("patient"); // State to manage selected role
+  const [signupRole, setSignupRole] = useState("patient");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -50,7 +50,6 @@ const Auth = () => {
     const password = formData.get("signup-password") as string;
     const fullName = formData.get("signup-name") as string;
     const role = formData.get("signup-role") as string;
-    // const specialty = formData.get("signup-specialty") as string; // Removido o campo specialty
 
     const redirectUrl = `${window.location.origin}/`;
 
@@ -62,7 +61,6 @@ const Auth = () => {
         data: {
           full_name: fullName,
           role: role,
-          // specialty: specialty, // Removido o campo specialty
         },
       },
     });
@@ -74,9 +72,28 @@ const Auth = () => {
         variant: "destructive",
       });
     } else {
+      // Após criar a conta, vamos atualizar o perfil do usuário
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: user.id,
+            full_name: fullName,
+            email: email,
+            // specialty: role === 'doctor' ? specialty : null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (profileError) {
+          console.error('Erro ao criar perfil:', profileError);
+        }
+      }
+      
       toast({
         title: "Conta criada com sucesso!",
-        description: "Você já pode fazer login.",
+        description: "Verifique seu email para confirmar a conta.",
       });
     }
 
