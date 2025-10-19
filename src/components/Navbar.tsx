@@ -13,12 +13,14 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { useToast } from "@/hooks/use-toast"; // Importar useToast
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const navigate = useNavigate();
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false); // Estado para controlar o Drawer
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { toast } = useToast(); // Inicializar useToast
 
   useEffect(() => {
     const fetchUserRole = async (userId: string) => {
@@ -61,16 +63,15 @@ const Navbar = () => {
       const section = document.getElementById(sectionId);
       if (section) {
         section.scrollIntoView({ behavior: 'smooth' });
-        setIsDrawerOpen(false); // Fecha o drawer após rolar
+        setIsDrawerOpen(false);
       }
     } catch (error) {
       console.error(`Error scrolling to ${sectionId}:`, error);
-      // Fallback for cross-origin issues
       const element = document.getElementById(sectionId);
       if (element) {
         const yOffset = element.getBoundingClientRect().top + window.pageYOffset;
         window.scrollTo({top: yOffset, behavior: 'smooth'});
-        setIsDrawerOpen(false); // Fecha o drawer após rolar
+        setIsDrawerOpen(false);
       }
     }
   };
@@ -79,7 +80,6 @@ const Navbar = () => {
     <header className="sticky top-0 z-50 bg-card border-b border-border shadow-sm backdrop-blur-md">
       <div className="container mx-auto flex items-center justify-between h-20 px-4">
         <div className="flex items-center space-x-3">
-          {/* Logo */}
           <Link to="/">
             <h1 className="text-2xl font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer">
               Dr. Frederick Parreira
@@ -87,7 +87,6 @@ const Navbar = () => {
           </Link>
         </div>
         
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8">
           <a 
             href="#about"
@@ -152,8 +151,20 @@ const Navbar = () => {
           {user ? (
             <Button 
               onClick={async () => {
-                await supabase.auth.signOut();
-                navigate("/");
+                const { error } = await supabase.auth.signOut();
+                if (error) {
+                  toast({
+                    title: "Erro ao sair",
+                    description: error.message,
+                    variant: "destructive",
+                  });
+                } else {
+                  toast({
+                    title: "Sucesso",
+                    description: "Você foi desconectado(a).",
+                  });
+                  navigate("/"); // Redireciona para a home após o logout
+                }
               }}
               variant="outline"
               className="flex items-center gap-2"
@@ -173,7 +184,6 @@ const Navbar = () => {
           )}
         </nav>
 
-        {/* Desktop Button */}
         <div className="hidden md:block">
           <Button 
             className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-6"
@@ -183,7 +193,6 @@ const Navbar = () => {
           </Button>
         </div>
 
-        {/* Mobile Menu Button (Drawer Trigger) */}
         <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
           <DrawerTrigger asChild className="md:hidden">
             <Button variant="ghost" className="p-2 text-foreground" aria-label="Abrir menu">
@@ -263,9 +272,21 @@ const Navbar = () => {
                 {user ? (
                   <Button 
                     onClick={async () => {
-                      await supabase.auth.signOut();
-                      navigate("/");
-                      setIsDrawerOpen(false);
+                      const { error } = await supabase.auth.signOut();
+                      if (error) {
+                        toast({
+                          title: "Erro ao sair",
+                          description: error.message,
+                          variant: "destructive",
+                        });
+                      } else {
+                        toast({
+                          title: "Sucesso",
+                          description: "Você foi desconectado(a).",
+                        });
+                        navigate("/");
+                        setIsDrawerOpen(false);
+                      }
                     }}
                     variant="outline"
                     className="flex items-center gap-2 w-full mt-2"

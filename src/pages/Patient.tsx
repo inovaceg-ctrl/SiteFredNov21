@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
@@ -16,41 +16,16 @@ import { OnlineConsultationTab } from "@/components/OnlineConsultationTab";
 const Patient = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [appointments, setAppointments] = useState<any[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<any[]>([]);
-  const [patientProfile, setPatientProfile] = useState<any>(null); // Novo estado para o perfil do paciente
+  const [patientProfile, setPatientProfile] = useState<any>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-        if (session?.user) {
-          fetchPatientProfile(session.user.id);
-        }
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      if (session?.user) {
-        fetchPatientProfile(session.user.id);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchPatientProfile = async (userId: string) => {
+  const fetchPatientProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -59,23 +34,46 @@ const Patient = () => {
 
     if (!error && data) {
       setPatientProfile(data);
+    } else {
+      setPatientProfile(null);
     }
-  };
+  }, []);
 
+  // Centralized auth state management for this component
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
-  }, [user, loading, navigate]);
+    const handleAuthStateChange = async (event: string, session: Session | null) => {
+      console.log("Patient.tsx: Auth state change event:", event, "session:", session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+      if (session?.user) {
+        await fetchPatientProfile(session.user.id);
+      } else {
+        setPatientProfile(null); // Clear profile on logout
+        navigate("/auth"); // Redirect to auth page on logout
+      }
+    };
 
-  useEffect(() => {
-    if (user) {
-      fetchAppointments();
-      fetchDoctors();
-    }
-  }, [user]);
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Patient.tsx: Initial getSession result:", session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+      if (session?.user) {
+        fetchPatientProfile(session.user.id);
+      } else {
+        navigate("/auth"); // Redirect if no session on initial load
+      }
+    });
 
-  const fetchAppointments = async () => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
+
+    return () => {
+      console.log("Patient.tsx: Unsubscribing from auth state changes");
+      subscription.unsubscribe();
+    };
+  }, [navigate, fetchPatientProfile]);
+
+  const fetchAppointments = useCallback(async () => {
     if (!user) return;
     
     const { data: appointmentsData } = await (supabase as any)
@@ -96,18 +94,18 @@ const Patient = () => {
     } else {
       setAppointments([]);
     }
-  };
+  }, [user]);
 
-  const fetchDoctors = async () => {
+  const fetchDoctors = useCallback(async () => {
     const { data: doctorsData } = await (supabase as any)
       .rpc('get_doctors_public');
     setDoctors(doctorsData || []);
-  };
+  }, []);
 
-  const fetchAvailableSlots = async (doctorId: string) => {
+  const fetchAvailableSlots = useCallback(async (doctorId: string) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Define para o início do dia atual (local)
-    const startOfTodayISO = today.toISOString(); // Converte para ISO string (UTC)
+    today.setHours(0, 0, 0, 0);
+    const startOfTodayISO = today.toISOString();
 
     console.log("Fetching slots for doctor:", doctorId);
     console.log("Start of today (ISO):", startOfTodayISO);
@@ -117,7 +115,7 @@ const Patient = () => {
       .select('*')
       .eq('doctor_id', doctorId)
       .eq('is_available', true)
-      .gte('start_time', startOfTodayISO) // Filtra a partir do início do dia atual
+      .gte('start_time', startOfTodayISO)
       .order('start_time', { ascending: true })
       .limit(10);
     
@@ -132,9 +130,9 @@ const Patient = () => {
       console.log("Available slots data:", data);
     }
     setAvailableSlots(data || []);
-  };
+  }, [toast]);
 
-  const bookAppointment = async (slotId: string, startTime: string, endTime: string) => {
+  const bookAppointment = useCallback(async (slotId: string, startTime: string, endTime: string) => {
     if (!user || !selectedDoctor) return;
 
     const { error } = await (supabase as any)
@@ -164,11 +162,23 @@ const Patient = () => {
       setAvailableSlots([]);
       setActiveTab("appointments");
     }
-  };
+  }, [user, selectedDoctor, toast, fetchAppointments]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Erro ao sair",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Sucesso",
+        description: "Você foi desconectado(a).",
+      });
+      // The onAuthStateChange listener will handle navigation to /auth
+    }
   };
 
   if (loading) {
@@ -177,6 +187,12 @@ const Patient = () => {
         <p>Carregando...</p>
       </div>
     );
+  }
+
+  // If user is null after loading, it means they are not authenticated.
+  // The useEffect above should have already navigated them, but as a fallback:
+  if (!user) {
+    return null; // Or a loading spinner, as navigation is in progress
   }
 
   return (
@@ -188,7 +204,6 @@ const Patient = () => {
           <div>
             <h1 className="text-3xl font-bold">Portal do Paciente</h1>
             <p className="text-muted-foreground mt-2">
-              {/* Agora usamos o nome do perfil do paciente */}
               Bem-vindo(a), {patientProfile?.full_name || user?.user_metadata?.full_name || user?.email}
             </p>
           </div>
