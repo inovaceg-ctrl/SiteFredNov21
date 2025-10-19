@@ -1,6 +1,57 @@
 import { Mail, Phone, Instagram } from "lucide-react";
+import React, { useState } from "react";
+import emailjs from 'emailjs-com';
+import { useToast } from "@/hooks/use-toast"; // Importar useToast
 
 const ContactSection = () => {
+  const { toast } = useToast(); // Inicializar o hook de toast
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
+  });
+  const [isSending, setIsSending] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSending(true);
+
+    try {
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        {
+          user_name: formData.name,
+          user_email: formData.email,
+          user_phone: formData.phone,
+          message: formData.message,
+        },
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      );
+
+      toast({
+        title: "Mensagem Enviada!",
+        description: "Sua mensagem foi enviada com sucesso. Em breve entraremos em contato.",
+      });
+      setFormData({ name: "", email: "", phone: "", message: "" }); // Limpar formulário
+    } catch (error) {
+      console.error("Erro ao enviar e-mail:", error);
+      toast({
+        title: "Erro ao Enviar Mensagem",
+        description: "Ocorreu um erro ao tentar enviar sua mensagem. Por favor, tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
     <section id="contact" className="py-20 bg-background">
       <div className="container mx-auto px-4">
@@ -75,7 +126,7 @@ const ContactSection = () => {
           
           <div>
             <h3 className="text-2xl font-semibold mb-6 text-foreground">Envie Uma Mensagem</h3>
-            <form className="space-y-6 bg-card rounded-lg shadow-lg p-8 border border-border">
+            <form onSubmit={handleSubmit} className="space-y-6 bg-card rounded-lg shadow-lg p-8 border border-border">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
                   Nome Completo
@@ -84,6 +135,8 @@ const ContactSection = () => {
                   type="text"
                   id="name"
                   name="name"
+                  value={formData.name}
+                  onChange={handleChange}
                   required
                   className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Seu nome"
@@ -98,6 +151,8 @@ const ContactSection = () => {
                   type="email"
                   id="email"
                   name="email"
+                  value={formData.email}
+                  onChange={handleChange}
                   required
                   className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="seu@email.com"
@@ -112,6 +167,8 @@ const ContactSection = () => {
                   type="tel"
                   id="phone"
                   name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
                   className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="(00) 00000-0000"
                 />
@@ -125,6 +182,8 @@ const ContactSection = () => {
                   id="message"
                   name="message"
                   rows={5}
+                  value={formData.message}
+                  onChange={handleChange}
                   required
                   className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                   placeholder="Conte-me um pouco sobre o que você está buscando..."
@@ -133,9 +192,10 @@ const ContactSection = () => {
               
               <button
                 type="submit"
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-3 px-6 rounded-lg transition-colors"
+                disabled={isSending}
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-semibold py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Enviar Mensagem
+                {isSending ? "Enviando..." : "Enviar Mensagem"}
               </button>
             </form>
           </div>
