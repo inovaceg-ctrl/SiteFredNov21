@@ -14,9 +14,10 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { useToast } from "@/hooks/use-toast";
+import { User } from "@supabase/supabase-js"; // Import User type
 
 const Navbar = () => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null); // Explicitly type user state
   const [userRole, setUserRole] = useState<string | null>(null);
   const navigate = useNavigate();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -48,28 +49,37 @@ const Navbar = () => {
       }
     };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("Navbar: Verificação inicial da sessão. Sessão:", session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserRole(session.user.id);
+    const handleAuthStateChange = async (_event: string, session: any) => { // Use 'any' for session to match Supabase type
+      console.log("Navbar: Estado de autenticação alterado. Evento:", _event, "Sessão:", session);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        console.log("Navbar: Usuário logado:", currentUser.id, currentUser.email);
+        await fetchUserRole(currentUser.id);
       } else {
+        console.log("Navbar: Usuário deslogado.");
+        setUserRole(null);
+      }
+    };
+
+    // Initial session check
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log("Navbar: Verificação inicial da sessão. Sessão:", session);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        console.log("Navbar: Usuário logado inicialmente:", currentUser.id, currentUser.email);
+        await fetchUserRole(currentUser.id);
+      } else {
+        console.log("Navbar: Nenhum usuário logado inicialmente.");
         setUserRole(null);
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log("Navbar: Estado de autenticação alterado. Evento:", _event, "Sessão:", session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserRole(session.user.id);
-      } else {
-        setUserRole(null);
-      }
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [toast]); // Added toast to dependency array
 
   const scrollToSection = (sectionId: string) => {
     try {
