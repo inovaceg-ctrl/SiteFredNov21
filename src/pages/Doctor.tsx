@@ -125,12 +125,22 @@ const Doctor = () => {
     const newSlots = [];
     const date = new Date(selectedDate);
     
-    for (let hour = 8; hour < 18; hour++) {
-      const startTime = new Date(date);
-      startTime.setHours(hour, 0, 0, 0);
-      
-      const endTime = new Date(date);
-      endTime.setHours(hour + 1, 0, 0, 0);
+    // Inicia às 8:15
+    let currentSlotTime = new Date(date);
+    currentSlotTime.setHours(8, 15, 0, 0);
+    
+    // Termina às 20:00
+    const endOfDayLimit = new Date(date);
+    endOfDayLimit.setHours(20, 0, 0, 0);
+
+    while (currentSlotTime.getTime() < endOfDayLimit.getTime()) {
+      const startTime = new Date(currentSlotTime);
+      const endTime = new Date(currentSlotTime.getTime() + 45 * 60 * 1000); // Adiciona 45 minutos
+
+      // Se o final do slot exceder o limite de 20:00, não cria este slot
+      if (endTime.getTime() > endOfDayLimit.getTime()) {
+        break;
+      }
       
       newSlots.push({
         doctor_id: user.id,
@@ -138,6 +148,8 @@ const Doctor = () => {
         end_time: endTime.toISOString(),
         is_available: true,
       });
+      
+      currentSlotTime = endTime; // O próximo slot começa onde este termina
     }
 
     const { error } = await (supabase as any)
@@ -437,7 +449,7 @@ const Doctor = () => {
                         Nenhum horário cadastrado para esta data
                       </p>
                       <Button onClick={createDefaultSlots} disabled={loadingSlots}>
-                        Criar Horários Padrão (8h-18h)
+                        Criar Horários Padrão (8:15 - 20:00, 45min)
                       </Button>
                     </div>
                   )}
