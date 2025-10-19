@@ -105,19 +105,25 @@ const Patient = () => {
   };
 
   const fetchAvailableSlots = async (doctorId: string) => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
+    const now = new Date(); // Alterado para buscar a partir do momento atual
 
-    const { data } = await (supabase as any)
+    const { data, error } = await (supabase as any)
       .from('availability_slots')
       .select('*')
       .eq('doctor_id', doctorId)
       .eq('is_available', true)
-      .gte('start_time', tomorrow.toISOString())
+      .gte('start_time', now.toISOString()) // Filtrar a partir do momento atual
       .order('start_time', { ascending: true })
       .limit(10);
     
+    if (error) {
+      console.error("Error fetching available slots for patient:", error);
+      toast({
+        title: "Erro ao carregar horários",
+        description: "Não foi possível buscar os horários disponíveis. Tente novamente.",
+        variant: "destructive",
+      });
+    }
     setAvailableSlots(data || []);
   };
 
