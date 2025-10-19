@@ -524,23 +524,23 @@ const Doctor = () => {
                     {patients.map((patient) => (
                       <div key={patient.id} className="border rounded-lg p-4">
                         <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0"> {/* Added min-w-0 here */}
                             <p className="font-semibold text-lg mb-3">{patient.full_name}</p>
                             
                             <div className="space-y-2 text-sm">
                               <div className="flex items-start gap-2">
-                                <span className="font-medium text-muted-foreground min-w-[140px]">Data de Cadastro:</span>
-                                <span>{patient.created_at ? format(new Date(patient.created_at), "dd/MM/yyyy", { locale: ptBR }) : '-'}</span>
+                                <span className="font-medium text-muted-foreground flex-shrink-0">Data de Cadastro:</span> {/* Removed min-w */}
+                                <span className="flex-grow">{patient.created_at ? format(new Date(patient.created_at), "dd/MM/yyyy", { locale: ptBR }) : '-'}</span>
                               </div>
                               
                               <div className="flex items-start gap-2">
-                                <span className="font-medium text-muted-foreground min-w-[140px]">WhatsApp:</span>
-                                <span>{patient.whatsapp ? formatWhatsApp(patient.whatsapp) : '-'}</span>
+                                <span className="font-medium text-muted-foreground flex-shrink-0">WhatsApp:</span> {/* Removed min-w */}
+                                <span className="flex-grow">{patient.whatsapp ? formatWhatsApp(patient.whatsapp) : '-'}</span>
                               </div>
                               
                               <div className="flex items-start gap-2">
-                                <span className="font-medium text-muted-foreground min-w-[140px]">Endereço:</span>
-                                <span>
+                                <span className="font-medium text-muted-foreground flex-shrink-0">Endereço:</span> {/* Removed min-w */}
+                                <span className="flex-grow">
                                   {(patient.street || patient.city || patient.state) ? (
                                     <>
                                       {[
@@ -564,7 +564,7 @@ const Doctor = () => {
                               setSelectedPatient(patient);
                               setEditDialogOpen(true);
                             }}
-                            className="ml-4"
+                            className="ml-4 flex-shrink-0" // Added flex-shrink-0 to button
                           >
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
