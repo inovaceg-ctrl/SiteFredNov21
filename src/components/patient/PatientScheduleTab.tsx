@@ -1,274 +1,216 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { User } from "@supabase/supabase-js";
-import { Loader2 } from "lucide-react"; // Import Loader2
+import { CalendarIcon } from "lucide-react";
 
-interface PatientScheduleTabProps {
-  user: User;
-  setActiveTab: (tab: string) => void;
-  onAppointmentBooked: () => void;
-}
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-interface DoctorProfile {
-  id: string;
-  full_name: string;
-  specialty?: string;
-}
+export const PatientScheduleTab = () => {
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [selectedSlotStartTime, setSelectedSlotStartTime] = useState<string | null>(null);
+  const [selectedSlotEndTime, setSelectedSlotEndTime] = useState<string | null>(null);
 
-interface AvailabilitySlot {
-  id: string;
-  start_time: string;
-  end_time: string;
-}
+  const { data: doctors, isLoading: isLoadingDoctors } = useQuery({
+    queryKey: ["doctors"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_doctors_public");
+      if (error) throw error;
+      return data;
+    },
+  });
 
-export const PatientScheduleTab: React.FC<PatientScheduleTabProps> = ({ user, setActiveTab, onAppointmentBooked }) => {
-  const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
-  const [selectedDoctor, setSelectedDoctor] = useState<string | null>(null);
-  const [availableSlots, setAvailableSlots] = useState<AvailabilitySlot[]>([]);
-  const [loadingDoctors, setLoadingDoctors] = useState(true); // New loading state for doctors
-  const [loadingSlots, setLoadingSlots] = useState(false); // New loading state for slots
-  const [bookingLoading, setBookingLoading] = useState<string | null>(null); // Loading state for individual slot booking
-  const { toast } = useToast();
-
-  const fetchDoctors = useCallback(async () => {
-    setLoadingDoctors(true); // Set loading true
-    const { data: doctorsData, error } = await supabase
-      .rpc('get_doctors_public');
-    
-    if (error) {
-      console.error("PatientScheduleTab: Error fetching doctors:", error);
-      toast({
-        title: "Erro ao carregar médicos",
-        description: `Não foi possível buscar os médicos. Detalhes: ${error.message}`,
-        variant: "destructive",
+  const { data: availableSlots, isLoading: isLoadingSlots } = useQuery({
+    queryKey: ["availableSlots", selectedDoctorId, selectedDate],
+    queryFn: async () => {
+      if (!selectedDoctorId || !selectedDate) return [];
+      const { data, error } = await supabase.rpc("get_truly_available_slots", {
+        _doctor_id: selectedDoctorId,
+        _start_time_gte: selectedDate.toISOString(),
       });
-      setDoctors([]);
-    } else if (doctorsData && doctorsData.length > 0) {
-      setDoctors(doctorsData);
-    } else {
-      setDoctors([]);
-      toast({
-        title: "Nenhum médico disponível",
-        description: "Não há médicos cadastrados ou disponíveis para agendamento no momento.",
-        variant: "default",
-      });
-    }
-    setLoadingDoctors(false); // Set loading false
-  }, [toast]);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedDoctorId && !!selectedDate,
+  });
 
-  const fetchAvailableSlots = useCallback(async (doctorId: string) => {
-    setLoadingSlots(true); // Set loading true
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const startOfTodayISO = today.toISOString();
-
-    const { data, error } = await supabase
-      .rpc('get_truly_available_slots', {
-        _doctor_id: doctorId,
-        _start_time_gte: startOfTodayISO,
-      });
-    
-    if (error) {
-      console.error("PatientScheduleTab: Error fetching truly available slots:", error);
-      toast({
-        title: "Erro ao carregar horários",
-        description: `Não foi possível buscar os horários disponíveis. Detalhes: ${error.message}`,
-        variant: "destructive",
-      });
-    } else {
-      setAvailableSlots(data || []);
-    }
-    setLoadingSlots(false); // Set loading false
-  }, [toast]);
-
-  useEffect(() => {
-    fetchDoctors();
-  }, [fetchDoctors]);
-
-  useEffect(() => {
-    if (selectedDoctor) {
-      fetchAvailableSlots(selectedDoctor);
-
-      // Setup Realtime subscription for availability slots
-      const channel = supabase
-        .channel(`public:availability_slots:doctor_id=eq.${selectedDoctor}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'availability_slots',
-            filter: `doctor_id=eq.${selectedDoctor}`,
-          },
-          (payload) => {
-            const updatedSlot = payload.new as AvailabilitySlot & { is_available: boolean };
-            console.log("Realtime update for slot:", updatedSlot);
-            // If a slot becomes unavailable, remove it from the list
-            // If a slot becomes available, add it (or update if already there)
-            setAvailableSlots(prevSlots => {
-              if (updatedSlot.is_available) {
-                // Add or update if it's now available and not already in the list
-                if (!prevSlots.some(slot => slot.id === updatedSlot.id)) {
-                  return [...prevSlots, updatedSlot].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-                }
-                return prevSlots.map(slot => slot.id === updatedSlot.id ? updatedSlot : slot);
-              } else {
-                // Remove if it's no longer available
-                return prevSlots.filter(slot => slot.id !== updatedSlot.id);
-              }
-            });
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    } else {
-      setAvailableSlots([]);
-    }
-  }, [selectedDoctor, fetchAvailableSlots]);
-
-  const bookAppointment = useCallback(async (slotId: string, startTime: string, endTime: string) => {
-    if (!user || !selectedDoctor) {
-      toast({
-        title: "Erro",
-        description: "Usuário ou médico não selecionado.",
-        variant: "destructive",
-      });
+  const handleScheduleAppointment = async () => {
+    if (!selectedDoctorId || !selectedSlotId || !selectedSlotStartTime || !selectedSlotEndTime) {
+      toast.error("Por favor, selecione um profissional, uma data e um horário.");
       return;
     }
 
-    setBookingLoading(slotId); // Set loading for this specific slot
+    const { data: userSession, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !userSession.session) {
+      toast.error("Você precisa estar logado para agendar uma consulta.");
+      return;
+    }
 
-    // Optimistic UI update: Immediately remove the slot from the UI
-    const originalAvailableSlots = availableSlots;
-    setAvailableSlots(prev => prev.filter(slot => slot.id !== slotId));
+    const patientId = userSession.session.user.id;
 
     try {
-      // Call the new RPC function to atomically book the slot and create the appointment
-      const { data, error } = await supabase.rpc('book_slot_and_create_appointment', {
-        _slot_id: slotId,
-        _patient_id: user.id,
-        _doctor_id: selectedDoctor,
-        _start_time: startTime,
-        _end_time: endTime,
+      const { data, error } = await supabase.rpc("book_slot_and_create_appointment", {
+        _slot_id: selectedSlotId,
+        _patient_id: patientId,
+        _doctor_id: selectedDoctorId,
+        _start_time: selectedSlotStartTime,
+        _end_time: selectedSlotEndTime,
       });
 
       if (error) {
-        throw error; // Throw to be caught by the catch block
+        toast.error(error.message);
+        throw error;
       }
 
-      toast({
-        title: "Consulta Agendada!",
-        description: "Sua consulta foi agendada e está aguardando a confirmação do doutor.",
-      });
-      onAppointmentBooked(); // Notify parent to refresh appointments
-      setActiveTab("appointments");
-      setSelectedDoctor(null); // Clear selected doctor to reset the view
-      setAvailableSlots([]); // Clear available slots
-    } catch (error: any) {
-      console.error("PatientScheduleTab: Error booking appointment via RPC:", error);
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível agendar a consulta. Por favor, tente novamente.",
-        variant: "destructive",
-      });
-
-      // Revert optimistic update: Add the slot back if booking failed
-      setAvailableSlots(originalAvailableSlots);
-      fetchAvailableSlots(selectedDoctor); // Re-fetch to ensure consistency
-    } finally {
-      setBookingLoading(null); // Clear loading state
+      toast.success("Consulta agendada com sucesso!");
+      setSelectedSlotId(null);
+      setSelectedSlotStartTime(null);
+      setSelectedSlotEndTime(null);
+      // Optionally, refetch slots to update availability
+      // queryClient.invalidateQueries(["availableSlots", selectedDoctorId, selectedDate]);
+    } catch (error) {
+      console.error("Erro ao agendar consulta:", error);
+      // toast.error("Erro ao agendar consulta. Tente novamente.");
     }
-  }, [user, selectedDoctor, toast, availableSlots, fetchAvailableSlots, onAppointmentBooked, setActiveTab]);
+  };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Selecione um Médico</CardTitle>
-          <CardDescription>Escolha o médico para ver os horários disponíveis</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3">
-          {loadingDoctors ? (
-            <div className="flex justify-center p-4">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          ) : (
-            doctors.map((doctor) => (
-              <Button
-                key={doctor.id}
-                variant={selectedDoctor === doctor.id ? "default" : "outline"}
-                className="w-full justify-start"
-                onClick={() => {
-                  setSelectedDoctor(doctor.id);
-                }}
-              >
-                {doctor.full_name} {doctor.specialty && `(${doctor.specialty})`}
-              </Button>
-            ))
-          )}
-          {!loadingDoctors && doctors.length === 0 && (
-            <p className="text-muted-foreground text-center py-4">
-              Nenhum médico disponível no momento.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+    <Card>
+      <CardHeader>
+        <CardTitle>Selecione um profissional</CardTitle>
+        <CardDescription>Escolha o profissional para ver os horários disponíveis</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3">
+        <div className="grid gap-2">
+          <label htmlFor="doctor-select" className="text-sm font-medium">
+            Profissional
+          </label>
+          <Select
+            onValueChange={(value) => {
+              setSelectedDoctorId(value);
+              setSelectedSlotId(null); // Reset slot when doctor changes
+              setSelectedSlotStartTime(null);
+              setSelectedSlotEndTime(null);
+            }}
+            value={selectedDoctorId || ""}
+            disabled={isLoadingDoctors}
+          >
+            <SelectTrigger id="doctor-select">
+              <SelectValue placeholder="Selecione um profissional" />
+            </SelectTrigger>
+            <SelectContent>
+              {doctors?.map((doctor) => (
+                <SelectItem key={doctor.id} value={doctor.id}>
+                  {doctor.full_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-      {selectedDoctor && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Horários Disponíveis</CardTitle>
-            <CardDescription>Selecione um horário para agendar</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {loadingSlots ? (
-              <div className="flex justify-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : (
-              availableSlots.map((slot) => (
-                <div
+        <div className="grid gap-2">
+          <label htmlFor="date-picker" className="text-sm font-medium">
+            Data
+          </label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !selectedDate && "text-muted-foreground"
+                )}
+                disabled={!selectedDoctorId}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDate ? (
+                  format(selectedDate, "PPP", { locale: ptBR })
+                ) : (
+                  <span>Selecione uma data</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  setSelectedDate(date);
+                  setSelectedSlotId(null); // Reset slot when date changes
+                  setSelectedSlotStartTime(null);
+                  setSelectedSlotEndTime(null);
+                }}
+                initialFocus
+                locale={ptBR}
+                disabled={(date) => date < new Date()}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="grid gap-2">
+          <label htmlFor="time-slot-select" className="text-sm font-medium">
+            Horário
+          </label>
+          <Select
+            onValueChange={(value) => {
+              const [slotId, startTime, endTime] = value.split("|");
+              setSelectedSlotId(slotId);
+              setSelectedSlotStartTime(startTime);
+              setSelectedSlotEndTime(endTime);
+            }}
+            value={selectedSlotId ? `${selectedSlotId}|${selectedSlotStartTime}|${selectedSlotEndTime}` : ""}
+            disabled={!selectedDoctorId || !selectedDate || isLoadingSlots || (availableSlots?.length === 0 && !isLoadingSlots)}
+          >
+            <SelectTrigger id="time-slot-select">
+              <SelectValue placeholder={isLoadingSlots ? "Carregando horários..." : (availableSlots?.length === 0 ? "Nenhum horário disponível" : "Selecione um horário")} />
+            </SelectTrigger>
+            <SelectContent>
+              {availableSlots?.map((slot) => (
+                <SelectItem
                   key={slot.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
+                  value={`${slot.id}|${slot.start_time}|${slot.end_time}`}
                 >
-                  <div>
-                    <p className="font-medium">
-                      {format(new Date(slot.start_time), "dd 'de' MMMM", { locale: ptBR })}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {format(new Date(slot.start_time), "HH:mm")} - {format(new Date(slot.end_time), "HH:mm")}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => bookAppointment(slot.id, slot.start_time, slot.end_time)}
-                    disabled={bookingLoading === slot.id} // Disable button while booking this slot
-                  >
-                    {bookingLoading === slot.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Agendar"
-                    )}
-                  </Button>
-                </div>
-              ))
-            )}
-            {!loadingSlots && availableSlots.length === 0 && (
-              <p className="text-muted-foreground text-center py-4">
-                Nenhum horário disponível para este médico.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
-    </div>
+                  {format(new Date(slot.start_time), "HH:mm", { locale: ptBR })} - {format(new Date(slot.end_time), "HH:mm", { locale: ptBR })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Button
+          onClick={handleScheduleAppointment}
+          disabled={!selectedDoctorId || !selectedDate || !selectedSlotId}
+          className="w-full"
+        >
+          Agendar Consulta
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
