@@ -187,24 +187,24 @@ const Patient = () => {
 
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">
+          <TabsList className="flex w-full flex-nowrap overflow-x-auto scrollbar-hide justify-start md:grid md:grid-cols-5">
+            <TabsTrigger value="overview" className="min-w-max">
               <LayoutGrid className="h-4 w-4 mr-2" />
               Início
             </TabsTrigger>
-            <TabsTrigger value="schedule">
+            <TabsTrigger value="schedule" className="min-w-max">
               <Calendar className="h-4 w-4 mr-2" />
               Agendar
             </TabsTrigger>
-            <TabsTrigger value="appointments">
+            <TabsTrigger value="appointments" className="min-w-max">
               <Clock className="h-4 w-4 mr-2" />
               Consultas
             </TabsTrigger>
-            <TabsTrigger value="online-consultation">
+            <TabsTrigger value="online-consultation" className="min-w-max">
               <MessageSquare className="h-4 w-4 mr-2" />
               Consulta Online
             </TabsTrigger>
-            <TabsTrigger value="documents">
+            <TabsTrigger value="documents" className="min-w-max">
               <FileText className="h-4 w-4 mr-2" />
               Documentos
             </TabsTrigger>
