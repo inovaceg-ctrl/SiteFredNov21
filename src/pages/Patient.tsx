@@ -150,12 +150,16 @@ const Patient = () => {
   }, [navigate, fetchPatientProfile, fetchDoctors, fetchAppointments]);
 
   const fetchAvailableSlots = useCallback(async (doctorId: string) => {
+    console.log("Patient.tsx: fetchAvailableSlots called for doctorId:", doctorId);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const startOfTodayISO = today.toISOString();
 
-    console.log("Patient.tsx: Fetching slots for doctor:", doctorId);
-    console.log("Patient.tsx: Start of today (ISO):", startOfTodayISO);
+    console.log("Patient.tsx: Querying availability_slots with parameters:", {
+      doctor_id: doctorId,
+      is_available: true,
+      start_time_gte: startOfTodayISO,
+    });
 
     const { data, error } = await supabase
       .from('availability_slots')
@@ -167,14 +171,14 @@ const Patient = () => {
       .limit(10);
     
     if (error) {
-      console.error("Patient.tsx: Error fetching available slots for patient:", error);
+      console.error("Patient.tsx: Error fetching available slots:", error);
       toast({
         title: "Erro ao carregar horários",
         description: "Não foi possível buscar os horários disponíveis. Tente novamente.",
         variant: "destructive",
       });
     } else {
-      console.log("Patient.tsx: Available slots data:", data);
+      console.log("Patient.tsx: Available slots data received:", data);
     }
     setAvailableSlots(data || []);
   }, [toast]);
