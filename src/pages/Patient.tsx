@@ -5,7 +5,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, FileText, LogOut, Video, LayoutGrid, MessageSquare } from "lucide-react";
+import { Calendar, Clock, FileText, LogOut, Video, LayoutGrid, MessageSquare, CheckCircle, Hourglass, XCircle } from "lucide-react"; // Added icons
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
@@ -287,6 +287,36 @@ const Patient = () => {
     }
   };
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Hourglass className="h-4 w-4 text-yellow-500" />;
+      case 'confirmed':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-blue-500" />;
+      case 'cancelled':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return null;
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'Pendente';
+      case 'confirmed':
+        return 'Confirmada';
+      case 'completed':
+        return 'Concluída';
+      case 'cancelled':
+        return 'Cancelada';
+      default:
+        return status;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -431,7 +461,7 @@ const Patient = () => {
                         fetchAvailableSlots(doctor.id);
                       }}
                     >
-                      {doctor.full_name}
+                      {doctor.full_name} {doctor.specialty && `(${doctor.specialty})`}
                     </Button>
                   ))}
                   {doctors.length === 0 && (
@@ -485,30 +515,43 @@ const Patient = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Minhas Consultas</CardTitle>
-                <CardDescription>Veja suas consultas agendadas</CardDescription>
+                <CardDescription>Visualize suas consultas agendadas e seus detalhes.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {appointments.map((apt) => (
                   <div
                     key={apt.id}
-                    className="flex items-start justify-between p-4 border rounded-lg"
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg shadow-sm"
                   >
-                    <div className="space-y-1">
-                      <p className="font-medium">
-                        Dr(a). {apt.doctor_profile?.full_name || 'Médico'}
+                    <div className="space-y-1 mb-2 sm:mb-0">
+                      <p className="font-semibold text-lg">
+                        Dr(a). {apt.doctor_profile?.full_name || 'Médico Desconhecido'}
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(apt.start_time), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                      {apt.doctor_profile?.specialty && (
+                        <p className="text-sm text-muted-foreground">
+                          Especialidade: {apt.doctor_profile.specialty}
+                        </p>
+                      )}
+                      <p className="text-md">
+                        <Calendar className="inline-block h-4 w-4 mr-1 text-primary" />
+                        Data: {format(new Date(apt.start_time), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                       </p>
-                      <p className="text-sm">
-                        Status: <span className="font-medium">{apt.status === 'pending' ? 'Pendente' : apt.status === 'confirmed' ? 'Confirmada' : apt.status === 'completed' ? 'Concluída' : 'Cancelada'}</span>
+                      <p className="text-md">
+                        <Clock className="inline-block h-4 w-4 mr-1 text-primary" />
+                        Horário: {format(new Date(apt.start_time), "HH:mm")} - {format(new Date(apt.end_time), "HH:mm")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(apt.status)}
+                      <p className="text-md font-medium">
+                        Status: {getStatusText(apt.status)}
                       </p>
                     </div>
                   </div>
                 ))}
                 {appointments.length === 0 && (
                   <p className="text-muted-foreground text-center py-4">
-                    Nenhuma consulta agendada
+                    Nenhuma consulta agendada. Agende sua primeira consulta na aba "Agendar"!
                   </p>
                 )}
               </CardContent>
