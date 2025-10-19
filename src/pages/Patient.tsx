@@ -115,7 +115,6 @@ const Patient = () => {
       .eq('doctor_id', doctorId)
       .eq('is_available', true)
       .gte('start_time', tomorrow.toISOString())
-      .lte('start_time', endOfDay.toISOString())
       .order('start_time', { ascending: true })
       .limit(10);
     
@@ -188,24 +187,24 @@ const Patient = () => {
 
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="flex w-full flex-wrap overflow-x-auto scrollbar-hide justify-start md:grid md:grid-cols-5">
-            <TabsTrigger value="overview" className="px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
+          <TabsList className="grid grid-cols-2 gap-2 w-full md:flex md:flex-nowrap md:justify-start">
+            <TabsTrigger value="overview" className="w-full px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
               <LayoutGrid className="h-4 w-4 mr-2" />
               Início
             </TabsTrigger>
-            <TabsTrigger value="schedule" className="px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
+            <TabsTrigger value="schedule" className="w-full px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
               <Calendar className="h-4 w-4 mr-2" />
               Agendar
             </TabsTrigger>
-            <TabsTrigger value="appointments" className="px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
+            <TabsTrigger value="appointments" className="w-full px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
               <Clock className="h-4 w-4 mr-2" />
               Consultas
             </TabsTrigger>
-            <TabsTrigger value="online-consultation" className="px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
+            <TabsTrigger value="online-consultation" className="w-full px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
               <MessageSquare className="h-4 w-4 mr-2" />
               Consulta Online
             </TabsTrigger>
-            <TabsTrigger value="documents" className="px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
+            <TabsTrigger value="documents" className="w-full px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
               <FileText className="h-4 w-4 mr-2" />
               Documentos
             </TabsTrigger>
