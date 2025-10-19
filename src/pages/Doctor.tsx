@@ -5,7 +5,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar as CalendarIcon, Clock, FileText, LogOut, Users, Video, BarChart3, Loader2, Edit, User as UserIcon, MessageSquare } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, FileText, LogOut, Users, Video, BarChart3, Loader2, Edit, User as UserIcon, MessageSquare, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
@@ -17,6 +17,7 @@ import { EditPatientDialog } from "@/components/EditPatientDialog";
 import { formatWhatsApp } from "@/lib/format-phone";
 import { DoctorProfileForm } from "@/components/DoctorProfileForm";
 import { DoctorOnlineConsultationTab } from "@/components/DoctorOnlineConsultationTab";
+import { Checkbox } from "@/components/ui/checkbox"; // Importar Checkbox
 
 const Doctor = () => {
   const navigate = useNavigate();
@@ -31,7 +32,8 @@ const Doctor = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [doctorProfile, setDoctorProfile] = useState<any>(null); // Novo estado para o perfil do médico
+  const [doctorProfile, setDoctorProfile] = useState<any>(null);
+  const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]); // Novo estado para slots selecionados
   const { toast } = useToast();
 
   useEffect(() => {
@@ -79,6 +81,7 @@ const Doctor = () => {
   useEffect(() => {
     if (user && activeTab === "schedule" && selectedDate) {
       fetchSlots();
+      setSelectedSlotIds([]); // Limpa a seleção ao mudar de data
     }
   }, [user, selectedDate, activeTab]);
 
@@ -198,6 +201,72 @@ const Doctor = () => {
     }
   };
 
+  // Handlers para seleção múltipla
+  const handleSelectSlot = (slotId: string, isSelected: boolean) => {
+    setSelectedSlotIds((prev) =>
+      isSelected ? [...prev, slotId] : prev.filter((id) => id !== slotId)
+    );
+  };
+
+  const handleSelectAllSlots = (isChecked: boolean) => {
+    if (isChecked) {
+      setSelectedSlotIds(slots.map(slot => slot.id));
+    } else {
+      setSelectedSlotIds([]);
+    }
+  };
+
+  // Ações em massa
+  const handleBulkDeleteSlots = async () => {
+    if (selectedSlotIds.length === 0) return;
+    setLoadingSlots(true);
+    const { error } = await (supabase as any)
+      .from('availability_slots')
+      .delete()
+      .in('id', selectedSlotIds);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir os horários selecionados.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Sucesso",
+        description: `${selectedSlotIds.length} horários excluídos com sucesso!`,
+      });
+      setSelectedSlotIds([]);
+      fetchSlots();
+    }
+    setLoadingSlots(false);
+  };
+
+  const handleBulkToggleAvailability = async (makeAvailable: boolean) => {
+    if (selectedSlotIds.length === 0) return;
+    setLoadingSlots(true);
+    const { error } = await (supabase as any)
+      .from('availability_slots')
+      .update({ is_available: makeAvailable })
+      .in('id', selectedSlotIds);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível alterar a disponibilidade dos horários selecionados.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Sucesso",
+        description: `${selectedSlotIds.length} horários marcados como ${makeAvailable ? 'disponíveis' : 'indisponíveis'}!`,
+      });
+      setSelectedSlotIds([]);
+      fetchSlots();
+    }
+    setLoadingSlots(false);
+  };
+
   const fetchAppointments = async () => {
     const { data: appts } = await (supabase as any)
       .rpc('get_appointments_for_doctor');
@@ -271,7 +340,6 @@ const Doctor = () => {
           <div>
             <h1 className="text-3xl font-bold">Portal do Profissional</h1>
             <p className="text-muted-foreground mt-2">
-              {/* Agora usamos o nome do perfil do médico */}
               Bem-vindo(a), {doctorProfile?.full_name || user?.user_metadata?.full_name || user?.email}
             </p>
           </div>
@@ -400,7 +468,7 @@ const Doctor = () => {
               <CardContent className="p-6">
                 {user?.id && <DoctorProfileForm userId={user.id} onProfileUpdated={() => {
                   console.log("Doctor profile updated!");
-                  fetchDoctorProfile(user.id); // Atualiza o perfil após a edição
+                  fetchDoctorProfile(user.id);
                 }} />}
               </CardContent>
             </Card>
@@ -430,7 +498,7 @@ const Doctor = () => {
                     Horários para {selectedDate ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR }) : ""}
                   </CardTitle>
                   <CardDescription>
-                    {slots.length > 0 ? "Clique para marcar como indisponível" : "Nenhum horário cadastrado"}
+                    {slots.length > 0 ? "Selecione horários para ações em massa" : "Nenhum horário cadastrado"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -438,35 +506,90 @@ const Doctor = () => {
                     <div className="flex justify-center p-8">
                       <Loader2 className="h-8 w-8 animate-spin" />
                     </div>
-                  ) : slots.length > 0 ? (
-                    <div className="space-y-2">
-                      {slots.map((slot) => (
-                        <div
-                          key={slot.id}
-                          className="flex items-center justify-between p-3 border rounded-lg"
-                        >
-                          <span className="font-medium">
-                            {format(new Date(slot.start_time), "HH:mm")} - {format(new Date(slot.end_time), "HH:mm")}
-                          </span>
-                          <Button
-                            variant={slot.is_available ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => toggleSlotAvailability(slot.id, slot.is_available)}
-                          >
-                            {slot.is_available ? "Disponível" : "Indisponível"}
+                  ) : (
+                    <>
+                      {slots.length > 0 && (
+                        <div className="flex items-center justify-between pb-2 border-b">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="select-all-slots"
+                              checked={selectedSlotIds.length === slots.length && slots.length > 0}
+                              onCheckedChange={(checked) => handleSelectAllSlots(checked as boolean)}
+                            />
+                            <Label htmlFor="select-all-slots">Selecionar Todos</Label>
+                          </div>
+                          {selectedSlotIds.length > 0 && (
+                            <div className="flex gap-2">
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={handleBulkDeleteSlots}
+                                disabled={loadingSlots}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Excluir ({selectedSlotIds.length})
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleBulkToggleAvailability(true)}
+                                disabled={loadingSlots}
+                              >
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Disponibilizar ({selectedSlotIds.length})
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleBulkToggleAvailability(false)}
+                                disabled={loadingSlots}
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Indisponibilizar ({selectedSlotIds.length})
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {slots.length > 0 ? (
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                          {slots.map((slot) => (
+                            <div
+                              key={slot.id}
+                              className="flex items-center justify-between p-3 border rounded-lg"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`slot-${slot.id}`}
+                                  checked={selectedSlotIds.includes(slot.id)}
+                                  onCheckedChange={(checked) => handleSelectSlot(slot.id, checked as boolean)}
+                                />
+                                <Label htmlFor={`slot-${slot.id}`} className="font-medium">
+                                  {format(new Date(slot.start_time), "HH:mm")} - {format(new Date(slot.end_time), "HH:mm")}
+                                </Label>
+                              </div>
+                              <Button
+                                variant={slot.is_available ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => toggleSlotAvailability(slot.id, slot.is_available)}
+                              >
+                                {slot.is_available ? "Disponível" : "Indisponível"}
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground mb-4">
+                            Nenhum horário cadastrado para esta data
+                          </p>
+                          <Button onClick={createDefaultSlots} disabled={loadingSlots}>
+                            Gerar Horários Padrão (8:15-20:00, 45min)
                           </Button>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground mb-4">
-                        Nenhum horário cadastrado para esta data
-                      </p>
-                      <Button onClick={createDefaultSlots} disabled={loadingSlots}>
-                        Criar Horários Padrão (8:15 - 20:00, 45min)
-                      </Button>
-                    </div>
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -551,22 +674,22 @@ const Doctor = () => {
                     {patients.map((patient) => (
                       <div key={patient.id} className="border rounded-lg p-4">
                         <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1 min-w-0"> {/* Added min-w-0 here */}
+                          <div className="flex-1 min-w-0">
                             <p className="font-semibold text-lg mb-3">{patient.full_name}</p>
                             
                             <div className="space-y-2 text-sm">
                               <div className="flex items-start gap-2">
-                                <span className="font-medium text-muted-foreground flex-shrink-0">Data de Cadastro:</span> {/* Removed min-w */}
+                                <span className="font-medium text-muted-foreground flex-shrink-0">Data de Cadastro:</span>
                                 <span className="flex-grow">{patient.created_at ? format(new Date(patient.created_at), "dd/MM/yyyy", { locale: ptBR }) : '-'}</span>
                               </div>
                               
                               <div className="flex items-start gap-2">
-                                <span className="font-medium text-muted-foreground flex-shrink-0">WhatsApp:</span> {/* Removed min-w */}
+                                <span className="font-medium text-muted-foreground flex-shrink-0">WhatsApp:</span>
                                 <span className="flex-grow">{patient.whatsapp ? formatWhatsApp(patient.whatsapp) : '-'}</span>
                               </div>
                               
                               <div className="flex items-start gap-2">
-                                <span className="font-medium text-muted-foreground flex-shrink-0">Endereço:</span> {/* Removed min-w */}
+                                <span className="font-medium text-muted-foreground flex-shrink-0">Endereço:</span>
                                 <span className="flex-grow">
                                   {(patient.street || patient.city || patient.state) ? (
                                     <>
@@ -591,7 +714,7 @@ const Doctor = () => {
                               setSelectedPatient(patient);
                               setEditDialogOpen(true);
                             }}
-                            className="ml-4 flex-shrink-0" // Added flex-shrink-0 to button
+                            className="ml-4 flex-shrink-0"
                           >
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
