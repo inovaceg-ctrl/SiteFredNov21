@@ -5,7 +5,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, FileText, LogOut, Video, LayoutGrid, MessageSquare, CheckCircle, Hourglass, XCircle } from "lucide-react"; // Added icons
+import { Calendar, Clock, FileText, LogOut, Video, LayoutGrid, MessageSquare, CheckCircle, Hourglass, XCircle, Trash2 } from "lucide-react"; // Added Trash2 icon
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
@@ -288,6 +288,59 @@ const Patient = () => {
     }
   }, [user, selectedDoctor, toast, fetchAppointments, fetchAvailableSlots]);
 
+  const deleteAppointment = useCallback(async (appointmentId: string, slotId: string) => {
+    if (!user) {
+      toast({
+        title: "Erro",
+        description: "Você precisa estar logado para excluir agendamentos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log("Patient.tsx: Attempting to delete appointment:", appointmentId);
+
+    // First, delete the appointment
+    const { error: deleteError } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('id', appointmentId)
+      .eq('patient_id', user.id); // Ensure only the patient can delete their own appointment
+
+    if (deleteError) {
+      console.error("Patient.tsx: Error deleting appointment:", deleteError);
+      toast({
+        title: "Erro ao excluir",
+        description: deleteError.message || "Não foi possível excluir o agendamento.",
+        variant: "destructive",
+      });
+    } else {
+      console.log("Patient.tsx: Appointment deleted successfully:", appointmentId);
+      toast({
+        title: "Agendamento Excluído",
+        description: "Sua consulta foi excluída com sucesso.",
+      });
+      // If deletion is successful, also mark the slot as available again
+      if (slotId) {
+        const { error: slotUpdateError } = await supabase
+          .from('availability_slots')
+          .update({ is_available: true })
+          .eq('id', slotId);
+        
+        if (slotUpdateError) {
+          console.error("Patient.tsx: Error reverting slot availability:", slotUpdateError);
+          toast({
+            title: "Aviso",
+            description: "Agendamento excluído, mas houve um erro ao liberar o horário. Contate o suporte.",
+            variant: "destructive",
+          });
+        }
+      }
+      fetchAppointments(); // Refresh the list of appointments
+    }
+  }, [user, toast, fetchAppointments]);
+
+
   const handleSignOut = async () => {
     console.log("Patient.tsx: Attempting to sign out.");
     const { error } = await supabase.auth.signOut();
@@ -567,6 +620,17 @@ const Patient = () => {
                       <p className="text-md font-medium">
                         Status: {getStatusText(apt.status)}
                       </p>
+                      {/* Adicionar botão de exclusão aqui */}
+                      {apt.status === 'pending' && ( // Só permite excluir se o status for 'pending'
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => deleteAppointment(apt.id, apt.slot_id)}
+                          className="ml-4"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" /> Excluir
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
