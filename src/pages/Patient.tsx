@@ -175,30 +175,26 @@ const Patient = () => {
     today.setHours(0, 0, 0, 0);
     const startOfTodayISO = today.toISOString();
 
-    console.log("Patient.tsx: Querying availability_slots with parameters:", {
-      doctor_id: doctorId,
-      is_available: true,
-      start_time_gte: startOfTodayISO,
+    console.log("Patient.tsx: Calling RPC 'get_truly_available_slots' with parameters:", {
+      _doctor_id: doctorId,
+      _start_time_gte: startOfTodayISO,
     });
 
     const { data, error } = await supabase
-      .from('availability_slots')
-      .select('*')
-      .eq('doctor_id', doctorId)
-      .eq('is_available', true)
-      .gte('start_time', startOfTodayISO)
-      .order('start_time', { ascending: true })
-      .limit(10);
+      .rpc('get_truly_available_slots', {
+        _doctor_id: doctorId,
+        _start_time_gte: startOfTodayISO,
+      });
     
     if (error) {
-      console.error("Patient.tsx: Error fetching available slots:", error);
+      console.error("Patient.tsx: Error fetching truly available slots:", error);
       toast({
         title: "Erro ao carregar horários",
         description: `Não foi possível buscar os horários disponíveis. Detalhes: ${error.message}`,
         variant: "destructive",
       });
     } else {
-      console.log("Patient.tsx: Available slots data received:", data);
+      console.log("Patient.tsx: Truly available slots data received:", data);
     }
     setAvailableSlots(data || []);
   }, [toast]);
