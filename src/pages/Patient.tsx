@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { OnlineConsultationTab } from "@/components/OnlineConsultationTab";
 import { Database } from "@/integrations/supabase/types"; // Import Database type
+import PatientDocumentsPage from "@/components/PatientDocumentsPage"; // Importar o novo componente de documentos
 
 const Patient = () => {
   const navigate = useNavigate();
@@ -198,6 +199,14 @@ const Patient = () => {
     }
     setAvailableSlots(data || []);
   }, [toast]);
+
+  // Novo useEffect para recarregar slots quando a aba "schedule" é ativada
+  useEffect(() => {
+    if (user && activeTab === "schedule" && selectedDoctor) {
+      fetchAvailableSlots(selectedDoctor);
+    }
+  }, [user, activeTab, selectedDoctor, fetchAvailableSlots]);
+
 
   const bookAppointment = useCallback(async (slotId: string, startTime: string, endTime: string) => {
     if (!user || !selectedDoctor) {
@@ -575,18 +584,7 @@ const Patient = () => {
           </TabsContent>
 
           <TabsContent value="documents">
-            <Card>
-              <CardHeader>
-                <CardTitle>Meus Documentos</CardTitle>
-                <CardDescription>Exames e documentos médicos</CardDescription>
-              </CardHeader>
-              <CardContent className="p-8 text-center">
-                <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">
-                  Funcionalidade de documentos em desenvolvimento
-                </p>
-              </CardContent>
-            </Card>
+            {user && <PatientDocumentsPage />}
           </TabsContent>
         </Tabs>
       </main>
