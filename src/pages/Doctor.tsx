@@ -256,31 +256,31 @@ const Doctor = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="flex w-full flex-nowrap overflow-x-auto scrollbar-hide justify-start md:grid md:grid-cols-7">
-            <TabsTrigger value="overview" className="min-w-max">
+            <TabsTrigger value="overview" className="px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
               <BarChart3 className="h-4 w-4 mr-2" />
               Visão Geral
             </TabsTrigger>
-            <TabsTrigger value="profile" className="min-w-max">
+            <TabsTrigger value="profile" className="px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
               <UserIcon className="h-4 w-4 mr-2" />
               Perfil
             </TabsTrigger>
-            <TabsTrigger value="schedule" className="min-w-max">
+            <TabsTrigger value="schedule" className="px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
               <CalendarIcon className="h-4 w-4 mr-2" />
               Agenda
             </TabsTrigger>
-            <TabsTrigger value="appointments" className="min-w-max">
+            <TabsTrigger value="appointments" className="px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
               <Clock className="h-4 w-4 mr-2" />
               Consultas
             </TabsTrigger>
-            <TabsTrigger value="patients" className="min-w-max">
+            <TabsTrigger value="patients" className="px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
               <Users className="h-4 w-4 mr-2" />
               Pacientes
             </TabsTrigger>
-            <TabsTrigger value="records" className="min-w-max">
+            <TabsTrigger value="records" className="px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
               <FileText className="h-4 w-4 mr-2" />
               Prontuários
             </TabsTrigger>
-            <TabsTrigger value="online-consultation" className="min-w-max">
+            <TabsTrigger value="online-consultation" className="px-3 py-2 text-sm whitespace-nowrap md:px-6 md:py-3 md:text-base">
               <MessageSquare className="h-4 w-4 mr-2" />
               Consulta Online
             </TabsTrigger>
