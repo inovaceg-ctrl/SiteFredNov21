@@ -93,6 +93,42 @@ export const PatientScheduleTab: React.FC<PatientScheduleTabProps> = ({ user, se
   useEffect(() => {
     if (selectedDoctor) {
       fetchAvailableSlots(selectedDoctor);
+
+      // Setup Realtime subscription for availability slots
+      const channel = supabase
+        .channel(`public:availability_slots:doctor_id=eq.${selectedDoctor}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'availability_slots',
+            filter: `doctor_id=eq.${selectedDoctor}`,
+          },
+          (payload) => {
+            const updatedSlot = payload.new as AvailabilitySlot & { is_available: boolean };
+            console.log("Realtime update for slot:", updatedSlot);
+            // If a slot becomes unavailable, remove it from the list
+            // If a slot becomes available, add it (or update if already there)
+            setAvailableSlots(prevSlots => {
+              if (updatedSlot.is_available) {
+                // Add or update if it's now available and not already in the list
+                if (!prevSlots.some(slot => slot.id === updatedSlot.id)) {
+                  return [...prevSlots, updatedSlot].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+                }
+                return prevSlots.map(slot => slot.id === updatedSlot.id ? updatedSlot : slot);
+              } else {
+                // Remove if it's no longer available
+                return prevSlots.filter(slot => slot.id !== updatedSlot.id);
+              }
+            });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     } else {
       setAvailableSlots([]);
     }
