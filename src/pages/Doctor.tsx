@@ -18,7 +18,8 @@ import { formatWhatsApp } from "@/lib/format-phone";
 import { DoctorProfileForm } from "@/components/DoctorProfileForm";
 import { DoctorOnlineConsultationTab } from "@/components/DoctorOnlineConsultationTab";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label"; // Importação adicionada
+import { Label } from "@/components/ui/label";
+import { Database } from "@/integrations/supabase/types"; // Import Database type
 
 const Doctor = () => {
   const navigate = useNavigate();
@@ -108,7 +109,7 @@ const Doctor = () => {
     const endOfDay = new Date(selectedDate);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('availability_slots')
       .select('*')
       .eq('doctor_id', user.id)
@@ -116,7 +117,14 @@ const Doctor = () => {
       .lte('start_time', endOfDay.toISOString())
       .order('start_time', { ascending: true });
 
-    if (!error) {
+    if (error) {
+      console.error("Error fetching slots:", error);
+      toast({
+        title: "Erro ao carregar horários",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
       setSlots(data || []);
     }
     setLoadingSlots(false);
@@ -126,7 +134,7 @@ const Doctor = () => {
     if (!user || !selectedDate) return;
     
     setLoadingSlots(true);
-    const newSlots = [];
+    const newSlots: Database['public']['Tables']['availability_slots']['Insert'][] = []; // Type assertion
     const date = new Date(selectedDate);
     
     // Inicia às 8:15
@@ -142,6 +150,9 @@ const Doctor = () => {
     breakStart.setHours(15, 45, 0, 0);
     const breakEnd = new Date(date);
     breakEnd.setHours(16, 15, 0, 0);
+
+    console.log("Attempting to create slots for:", selectedDate.toISOString());
+    console.log("Doctor ID:", user.id);
 
     while (currentSlotTime.getTime() < endOfDayLimit.getTime()) {
       const startTime = new Date(currentSlotTime);
@@ -171,14 +182,17 @@ const Doctor = () => {
       currentSlotTime = endTime; // O próximo slot começa onde este termina
     }
 
-    const { error } = await (supabase as any)
+    console.log("Slots to insert:", newSlots);
+
+    const { error } = await supabase
       .from('availability_slots')
       .insert(newSlots);
 
     if (error) {
+      console.error("Error creating slots:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível criar os horários",
+        description: error.message,
         variant: "destructive",
       });
     } else {
@@ -192,12 +206,20 @@ const Doctor = () => {
   };
 
   const toggleSlotAvailability = async (slotId: string, currentStatus: boolean) => {
-    const { error } = await (supabase as any)
+    console.log(`Toggling slot ${slotId} from ${currentStatus} to ${!currentStatus}`);
+    const { error } = await supabase
       .from('availability_slots')
       .update({ is_available: !currentStatus })
       .eq('id', slotId);
 
-    if (!error) {
+    if (error) {
+      console.error("Error toggling slot availability:", error);
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
       fetchSlots();
     }
   };
@@ -221,12 +243,14 @@ const Doctor = () => {
   const handleBulkDeleteSlots = async () => {
     if (selectedSlotIds.length === 0) return;
     setLoadingSlots(true);
-    const { error } = await (supabase as any)
+    console.log("Attempting to delete slots:", selectedSlotIds);
+    const { error } = await supabase
       .from('availability_slots')
       .delete()
       .in('id', selectedSlotIds);
 
     if (error) {
+      console.error("Error deleting bulk slots:", error);
       toast({
         title: "Erro",
         description: "Não foi possível excluir os horários selecionados.",
@@ -246,12 +270,14 @@ const Doctor = () => {
   const handleBulkToggleAvailability = async (makeAvailable: boolean) => {
     if (selectedSlotIds.length === 0) return;
     setLoadingSlots(true);
-    const { error } = await (supabase as any)
+    console.log(`Attempting to set availability for slots ${selectedSlotIds} to ${makeAvailable}`);
+    const { error } = await supabase
       .from('availability_slots')
       .update({ is_available: makeAvailable })
       .in('id', selectedSlotIds);
 
     if (error) {
+      console.error("Error bulk toggling availability:", error);
       toast({
         title: "Erro",
         description: "Não foi possível alterar a disponibilidade dos horários selecionados.",
@@ -269,10 +295,17 @@ const Doctor = () => {
   };
 
   const fetchAppointments = async () => {
-    const { data: appts } = await (supabase as any)
+    const { data: appts, error } = await supabase
       .rpc('get_appointments_for_doctor');
 
-    if (appts && appts.length > 0) {
+    if (error) {
+      console.error("Error fetching appointments:", error);
+      toast({
+        title: "Erro ao carregar consultas",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else if (appts && appts.length > 0) {
       const withPatients = appts.map((a: any) => ({
         ...a,
         patient_profile: { id: a.patient_id, full_name: a.patient_full_name }
@@ -284,15 +317,17 @@ const Doctor = () => {
   };
 
   const updateAppointmentStatus = async (id: string, status: string) => {
-    const { error } = await (supabase as any)
+    console.log(`Updating appointment ${id} status to ${status}`);
+    const { error } = await supabase
       .from('appointments')
       .update({ status })
       .eq('id', id);
 
     if (error) {
+      console.error("Error updating appointment status:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar o status",
+        description: error.message,
         variant: "destructive",
       });
     } else {
@@ -307,12 +342,17 @@ const Doctor = () => {
   const fetchPatients = async () => {
     if (!user) return;
 
-    console.log('Fetching patients...');
-    const { data: patientsData, error } = await (supabase as any)
+    console.log('Fetching patients for doctor:', user.id);
+    const { data: patientsData, error } = await supabase
       .rpc('get_patients_for_doctor');
 
     if (error) {
       console.error('Error fetching patients:', error);
+      toast({
+        title: "Erro ao carregar pacientes",
+        description: error.message,
+        variant: "destructive",
+      });
     } else {
       console.log('Patients fetched:', patientsData);
       setPatients(patientsData || []);

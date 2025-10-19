@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { OnlineConsultationTab } from "@/components/OnlineConsultationTab";
+import { Database } from "@/integrations/supabase/types"; // Import Database type
 
 const Patient = () => {
   const navigate = useNavigate();
@@ -39,6 +40,56 @@ const Patient = () => {
     }
   }, []);
 
+  const fetchAppointments = useCallback(async () => {
+    if (!user) return;
+    
+    const { data: appointmentsData, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('patient_id', user.id)
+      .order('start_time', { ascending: true });
+    
+    if (error) {
+      console.error("Error fetching patient appointments:", error);
+      toast({
+        title: "Erro ao carregar consultas",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else if (appointmentsData && appointmentsData.length > 0) {
+      const doctorIds = [...new Set(appointmentsData.map((a: any) => a.doctor_id))];
+      const { data: doctorProfiles, error: doctorError } = await supabase
+        .rpc('get_doctor_profiles_by_ids', { _ids: doctorIds });
+
+      if (doctorError) {
+        console.error("Error fetching doctor profiles for appointments:", doctorError);
+      }
+      const appointmentsWithDoctors = appointmentsData.map((apt: any) => ({
+        ...apt,
+        doctor_profile: doctorProfiles?.find((p: any) => p.id === apt.doctor_id)
+      }));
+      setAppointments(appointmentsWithDoctors);
+    } else {
+      setAppointments([]);
+    }
+  }, [user, toast]);
+
+  const fetchDoctors = useCallback(async () => {
+    const { data: doctorsData, error } = await supabase
+      .rpc('get_doctors_public');
+    
+    if (error) {
+      console.error("Error fetching doctors:", error);
+      toast({
+        title: "Erro ao carregar médicos",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setDoctors(doctorsData || []);
+    }
+  }, [toast]);
+
   // Centralized auth state management for this component
   useEffect(() => {
     const handleAuthStateChange = async (event: string, session: Session | null) => {
@@ -47,6 +98,9 @@ const Patient = () => {
       setLoading(false);
       if (session?.user) {
         await fetchPatientProfile(session.user.id);
+        // Call initial data fetches here after user is confirmed
+        fetchDoctors(); // Ensure doctors are loaded
+        fetchAppointments(); // Ensure appointments are loaded
       } else {
         setPatientProfile(null); // Clear profile on logout
         navigate("/auth"); // Redirect to auth page on logout
@@ -54,12 +108,15 @@ const Patient = () => {
     };
 
     // Initial session check
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => { // Added async here
       console.log("Patient.tsx: Initial getSession result:", session);
       setUser(session?.user ?? null);
       setLoading(false);
       if (session?.user) {
-        fetchPatientProfile(session.user.id);
+        await fetchPatientProfile(session.user.id);
+        // Call initial data fetches here after user is confirmed
+        fetchDoctors(); // Ensure doctors are loaded
+        fetchAppointments(); // Ensure appointments are loaded
       } else {
         navigate("/auth"); // Redirect if no session on initial load
       }
@@ -71,36 +128,7 @@ const Patient = () => {
       console.log("Patient.tsx: Unsubscribing from auth state changes");
       subscription.unsubscribe();
     };
-  }, [navigate, fetchPatientProfile]);
-
-  const fetchAppointments = useCallback(async () => {
-    if (!user) return;
-    
-    const { data: appointmentsData } = await (supabase as any)
-      .from('appointments')
-      .select('*')
-      .eq('patient_id', user.id)
-      .order('start_time', { ascending: true });
-    
-    if (appointmentsData && appointmentsData.length > 0) {
-      const doctorIds = [...new Set(appointmentsData.map((a: any) => a.doctor_id))];
-      const { data: doctorProfiles } = await (supabase as any)
-        .rpc('get_doctor_profiles_by_ids', { _ids: doctorIds });
-      const appointmentsWithDoctors = appointmentsData.map((apt: any) => ({
-        ...apt,
-        doctor_profile: doctorProfiles?.find((p: any) => p.id === apt.doctor_id)
-      }));
-      setAppointments(appointmentsWithDoctors);
-    } else {
-      setAppointments([]);
-    }
-  }, [user]);
-
-  const fetchDoctors = useCallback(async () => {
-    const { data: doctorsData } = await (supabase as any)
-      .rpc('get_doctors_public');
-    setDoctors(doctorsData || []);
-  }, []);
+  }, [navigate, fetchPatientProfile, fetchDoctors, fetchAppointments]); // Added fetchDoctors, fetchAppointments to dependencies
 
   const fetchAvailableSlots = useCallback(async (doctorId: string) => {
     const today = new Date();
@@ -110,7 +138,7 @@ const Patient = () => {
     console.log("Fetching slots for doctor:", doctorId);
     console.log("Start of today (ISO):", startOfTodayISO);
 
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('availability_slots')
       .select('*')
       .eq('doctor_id', doctorId)
@@ -135,7 +163,9 @@ const Patient = () => {
   const bookAppointment = useCallback(async (slotId: string, startTime: string, endTime: string) => {
     if (!user || !selectedDoctor) return;
 
-    const { error } = await (supabase as any)
+    console.log("Attempting to book appointment:", { patient_id: user.id, doctor_id: selectedDoctor, slot_id: slotId, start_time: startTime, end_time: endTime });
+
+    const { error: appointmentError } = await supabase
       .from('appointments')
       .insert({
         patient_id: user.id,
@@ -146,23 +176,41 @@ const Patient = () => {
         status: 'pending'
       });
 
-    if (error) {
+    if (appointmentError) {
+      console.error("Error booking appointment:", appointmentError);
       toast({
         title: "Erro",
-        description: "Não foi possível agendar a consulta",
+        description: appointmentError.message,
         variant: "destructive",
       });
     } else {
-      toast({
-        title: "Sucesso",
-        description: "Consulta agendada com sucesso!",
-      });
+      // After booking, the slot should no longer be available, so we need to update its status
+      const { error: updateSlotError } = await supabase
+        .from('availability_slots')
+        .update({ is_available: false })
+        .eq('id', slotId);
+
+      if (updateSlotError) {
+        console.error("Error updating slot availability after booking:", updateSlotError);
+        toast({
+          title: "Erro",
+          description: "Consulta agendada, mas não foi possível atualizar a disponibilidade do horário.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Sucesso",
+          description: "Consulta agendada com sucesso!",
+        });
+      }
+      
       fetchAppointments();
-      setSelectedDoctor(null);
-      setAvailableSlots([]);
+      fetchAvailableSlots(selectedDoctor); // Refresh available slots for the selected doctor
+      setSelectedDoctor(null); // Clear selected doctor to reset the view
+      setAvailableSlots([]); // Clear available slots
       setActiveTab("appointments");
     }
-  }, [user, selectedDoctor, toast, fetchAppointments]);
+  }, [user, selectedDoctor, toast, fetchAppointments, fetchAvailableSlots]); // Added fetchAvailableSlots to dependencies
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
