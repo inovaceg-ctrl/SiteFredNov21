@@ -5,7 +5,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar as CalendarIcon, Clock, FileText, LogOut, Users, Video, BarChart3, Loader2, Edit, User as UserIcon, MessageSquare, Trash2, CheckCircle, XCircle, MessageSquareText } from "lucide-react"; // Adicionado MessageSquareText
+import { Calendar as CalendarIcon, Clock, FileText, LogOut, Users, Video, BarChart3, Loader2, Edit, User as UserIcon, MessageSquare, Trash2, CheckCircle, XCircle, MessageSquareText, MapPin, Phone } from "lucide-react"; // Adicionado MapPin e Phone
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
@@ -340,7 +340,17 @@ const Doctor = () => {
     } else if (appts && appts.length > 0) {
       const withPatients = appts.map((a: any) => ({
         ...a,
-        patient_profile: { id: a.patient_id, full_name: a.patient_full_name }
+        patient_profile: { 
+          id: a.patient_id, 
+          full_name: a.patient_full_name,
+          whatsapp: a.patient_whatsapp,
+          street: a.patient_street,
+          street_number: a.patient_street_number,
+          neighborhood: a.patient_neighborhood,
+          city: a.patient_city,
+          state: a.patient_state,
+          zip_code: a.patient_zip_code,
+        }
       }));
       console.log("Doctor.tsx: Appointments fetched:", withPatients);
       setAppointments(withPatients);
@@ -710,8 +720,8 @@ const Doctor = () => {
                     <div key={apt.id} className="border rounded-lg p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <p className="font-medium">
-                            {apt.patient_profile?.full_name || 'Paciente'}
+                          <p className="font-medium text-lg">
+                            {apt.patient_profile?.full_name || 'Paciente Desconhecido'}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {format(new Date(apt.start_time), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
@@ -727,6 +737,30 @@ const Doctor = () => {
                            apt.status === 'completed' ? 'Concluída' : 'Cancelada'}
                         </Badge>
                       </div>
+                      
+                      <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                        {apt.patient_profile?.whatsapp && (
+                          <p className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-primary" />
+                            WhatsApp: <a href={`https://wa.me/${apt.patient_profile.whatsapp}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                              {formatWhatsApp(apt.patient_profile.whatsapp)}
+                            </a>
+                          </p>
+                        )}
+                        {(apt.patient_profile?.street || apt.patient_profile?.city) && (
+                          <p className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-primary" />
+                            Endereço: {[
+                              apt.patient_profile.street && `${apt.patient_profile.street}${apt.patient_profile.street_number ? ', ' + apt.patient_profile.street_number : ''}`,
+                              apt.patient_profile.neighborhood,
+                              apt.patient_profile.city,
+                              apt.patient_profile.state
+                            ].filter(Boolean).join(' - ')}
+                            {apt.patient_profile.zip_code && ` - CEP: ${apt.patient_profile.zip_code}`}
+                          </p>
+                        )}
+                      </div>
+
                       {apt.notes && (
                         <p className="text-sm mb-3">
                           <span className="font-medium">Observações:</span> {apt.notes}
