@@ -17,7 +17,8 @@ import { EditPatientDialog } from "@/components/EditPatientDialog";
 import { formatWhatsApp } from "@/lib/format-phone";
 import { DoctorProfileForm } from "@/components/DoctorProfileForm";
 import { DoctorOnlineConsultationTab } from "@/components/DoctorOnlineConsultationTab";
-import { Checkbox } from "@/components/ui/checkbox"; // Importar Checkbox
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label"; // Importação adicionada
 
 const Doctor = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ const Doctor = () => {
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [doctorProfile, setDoctorProfile] = useState<any>(null);
-  const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]); // Novo estado para slots selecionados
+  const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -81,7 +82,7 @@ const Doctor = () => {
   useEffect(() => {
     if (user && activeTab === "schedule" && selectedDate) {
       fetchSlots();
-      setSelectedSlotIds([]); // Limpa a seleção ao mudar de data
+      setSelectedSlotIds([]);
     }
   }, [user, selectedDate, activeTab]);
 
