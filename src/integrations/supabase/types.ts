@@ -539,6 +539,36 @@ export type Database = {
           }
         ];
       };
+      messages: { // Adicionada a tabela messages
+        Row: {
+          id: string;
+          name: string;
+          email: string | null;
+          phone: string;
+          content: string;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name?: string;
+          email?: string | null;
+          phone?: string;
+          content: string;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          email?: string | null;
+          phone?: string;
+          content?: string;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
