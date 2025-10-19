@@ -1,4 +1,3 @@
-
 import { Mail, Phone, Instagram } from "lucide-react";
 
 const ContactSection = () => {
@@ -27,9 +26,14 @@ const ContactSection = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg mb-2">WhatsApp</h3>
-                  <p className="text-muted-foreground">
+                  <a 
+                    href="https://wa.me/553291931779" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:text-primary/80 font-medium"
+                  >
                     +55 32 9193-1779
-                  </p>
+                  </a>
                 </div>
               </div>
 
@@ -40,9 +44,12 @@ const ContactSection = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg mb-2">E-mail (Parcerias)</h3>
-                  <p className="text-muted-foreground">
+                  <a 
+                    href="mailto:parcerias@drfredmartins.com.br" 
+                    className="text-primary hover:text-primary/80 font-medium"
+                  >
                     parcerias@drfredmartins.com.br
-                  </p>
+                  </a>
                 </div>
               </div>
 
