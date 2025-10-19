@@ -27,22 +27,33 @@ const Patient = () => {
   const { toast } = useToast();
 
   const fetchPatientProfile = useCallback(async (userId: string) => {
+    console.log("Patient.tsx: Fetching patient profile for userId:", userId);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (!error && data) {
+    if (error) {
+      console.error("Patient.tsx: Error fetching patient profile:", error);
+      toast({
+        title: "Erro ao carregar perfil do paciente",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else if (data) {
+      console.log("Patient.tsx: Patient profile fetched:", data);
       setPatientProfile(data);
-    } else {
-      setPatientProfile(null);
     }
-  }, []);
+  }, [toast]);
 
   const fetchAppointments = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log("Patient.tsx: Skipping fetchAppointments, user is missing.");
+      return;
+    }
     
+    console.log("Patient.tsx: Fetching appointments for patient:", user.id);
     const { data: appointmentsData, error } = await supabase
       .from('appointments')
       .select('*')
@@ -50,7 +61,7 @@ const Patient = () => {
       .order('start_time', { ascending: true });
     
     if (error) {
-      console.error("Error fetching patient appointments:", error);
+      console.error("Patient.tsx: Error fetching patient appointments:", error);
       toast({
         title: "Erro ao carregar consultas",
         description: error.message,
@@ -58,34 +69,44 @@ const Patient = () => {
       });
     } else if (appointmentsData && appointmentsData.length > 0) {
       const doctorIds = [...new Set(appointmentsData.map((a: any) => a.doctor_id))];
+      console.log("Patient.tsx: Fetching doctor profiles for IDs:", doctorIds);
       const { data: doctorProfiles, error: doctorError } = await supabase
         .rpc('get_doctor_profiles_by_ids', { _ids: doctorIds });
 
       if (doctorError) {
-        console.error("Error fetching doctor profiles for appointments:", doctorError);
+        console.error("Patient.tsx: Error fetching doctor profiles for appointments:", doctorError);
+        toast({
+          title: "Erro ao carregar perfis de médicos",
+          description: doctorError.message,
+          variant: "destructive",
+        });
       }
       const appointmentsWithDoctors = appointmentsData.map((apt: any) => ({
         ...apt,
         doctor_profile: doctorProfiles?.find((p: any) => p.id === apt.doctor_id)
       }));
+      console.log("Patient.tsx: Appointments with doctor profiles:", appointmentsWithDoctors);
       setAppointments(appointmentsWithDoctors);
     } else {
+      console.log("Patient.tsx: No appointments found for patient.");
       setAppointments([]);
     }
   }, [user, toast]);
 
   const fetchDoctors = useCallback(async () => {
+    console.log("Patient.tsx: Fetching all public doctors.");
     const { data: doctorsData, error } = await supabase
       .rpc('get_doctors_public');
     
     if (error) {
-      console.error("Error fetching doctors:", error);
+      console.error("Patient.tsx: Error fetching doctors:", error);
       toast({
         title: "Erro ao carregar médicos",
         description: error.message,
         variant: "destructive",
       });
     } else {
+      console.log("Patient.tsx: Doctors fetched:", doctorsData);
       setDoctors(doctorsData || []);
     }
   }, [toast]);
@@ -98,7 +119,6 @@ const Patient = () => {
       setLoading(false);
       if (session?.user) {
         await fetchPatientProfile(session.user.id);
-        // Call initial data fetches here after user is confirmed
         fetchDoctors(); // Ensure doctors are loaded
         fetchAppointments(); // Ensure appointments are loaded
       } else {
@@ -108,13 +128,12 @@ const Patient = () => {
     };
 
     // Initial session check
-    supabase.auth.getSession().then(async ({ data: { session } }) => { // Added async here
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log("Patient.tsx: Initial getSession result:", session);
       setUser(session?.user ?? null);
       setLoading(false);
       if (session?.user) {
         await fetchPatientProfile(session.user.id);
-        // Call initial data fetches here after user is confirmed
         fetchDoctors(); // Ensure doctors are loaded
         fetchAppointments(); // Ensure appointments are loaded
       } else {
@@ -128,15 +147,15 @@ const Patient = () => {
       console.log("Patient.tsx: Unsubscribing from auth state changes");
       subscription.unsubscribe();
     };
-  }, [navigate, fetchPatientProfile, fetchDoctors, fetchAppointments]); // Added fetchDoctors, fetchAppointments to dependencies
+  }, [navigate, fetchPatientProfile, fetchDoctors, fetchAppointments]);
 
   const fetchAvailableSlots = useCallback(async (doctorId: string) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const startOfTodayISO = today.toISOString();
 
-    console.log("Fetching slots for doctor:", doctorId);
-    console.log("Start of today (ISO):", startOfTodayISO);
+    console.log("Patient.tsx: Fetching slots for doctor:", doctorId);
+    console.log("Patient.tsx: Start of today (ISO):", startOfTodayISO);
 
     const { data, error } = await supabase
       .from('availability_slots')
@@ -148,24 +167,27 @@ const Patient = () => {
       .limit(10);
     
     if (error) {
-      console.error("Error fetching available slots for patient:", error);
+      console.error("Patient.tsx: Error fetching available slots for patient:", error);
       toast({
         title: "Erro ao carregar horários",
         description: "Não foi possível buscar os horários disponíveis. Tente novamente.",
         variant: "destructive",
       });
     } else {
-      console.log("Available slots data:", data);
+      console.log("Patient.tsx: Available slots data:", data);
     }
     setAvailableSlots(data || []);
   }, [toast]);
 
   const bookAppointment = useCallback(async (slotId: string, startTime: string, endTime: string) => {
-    if (!user || !selectedDoctor) return;
+    if (!user || !selectedDoctor) {
+      console.log("Patient.tsx: Skipping bookAppointment, user or selectedDoctor is missing.");
+      return;
+    }
 
-    console.log("Attempting to book appointment:", { patient_id: user.id, doctor_id: selectedDoctor, slot_id: slotId, start_time: startTime, end_time: endTime });
+    console.log("Patient.tsx: Attempting to book appointment:", { patient_id: user.id, doctor_id: selectedDoctor, slot_id: slotId, start_time: startTime, end_time: endTime });
 
-    const { error: appointmentError } = await supabase
+    const { data: appointmentData, error: appointmentError } = await supabase
       .from('appointments')
       .insert({
         patient_id: user.id,
@@ -174,30 +196,34 @@ const Patient = () => {
         start_time: startTime,
         end_time: endTime,
         status: 'pending'
-      });
+      })
+      .select(); // Adicionado .select() para ver os dados inseridos
 
     if (appointmentError) {
-      console.error("Error booking appointment:", appointmentError);
+      console.error("Patient.tsx: Error booking appointment:", appointmentError);
       toast({
         title: "Erro",
         description: appointmentError.message,
         variant: "destructive",
       });
     } else {
+      console.log("Patient.tsx: Appointment booked successfully:", appointmentData);
       // After booking, the slot should no longer be available, so we need to update its status
-      const { error: updateSlotError } = await supabase
+      const { data: updatedSlotData, error: updateSlotError } = await supabase
         .from('availability_slots')
         .update({ is_available: false })
-        .eq('id', slotId);
+        .eq('id', slotId)
+        .select(); // Adicionado .select() para ver os dados atualizados
 
       if (updateSlotError) {
-        console.error("Error updating slot availability after booking:", updateSlotError);
+        console.error("Patient.tsx: Error updating slot availability after booking:", updateSlotError);
         toast({
           title: "Erro",
           description: "Consulta agendada, mas não foi possível atualizar a disponibilidade do horário.",
           variant: "destructive",
         });
       } else {
+        console.log("Patient.tsx: Slot availability updated after booking:", updatedSlotData);
         toast({
           title: "Sucesso",
           description: "Consulta agendada com sucesso!",
@@ -210,17 +236,20 @@ const Patient = () => {
       setAvailableSlots([]); // Clear available slots
       setActiveTab("appointments");
     }
-  }, [user, selectedDoctor, toast, fetchAppointments, fetchAvailableSlots]); // Added fetchAvailableSlots to dependencies
+  }, [user, selectedDoctor, toast, fetchAppointments, fetchAvailableSlots]);
 
   const handleSignOut = async () => {
+    console.log("Patient.tsx: Attempting to sign out.");
     const { error } = await supabase.auth.signOut();
     if (error) {
+      console.error("Patient.tsx: Error signing out:", error);
       toast({
         title: "Erro ao sair",
         description: error.message,
         variant: "destructive",
       });
     } else {
+      console.log("Patient.tsx: Signed out successfully.");
       toast({
         title: "Sucesso",
         description: "Você foi desconectado(a).",

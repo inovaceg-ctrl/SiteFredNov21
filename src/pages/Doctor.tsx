@@ -41,6 +41,7 @@ const Doctor = () => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log("Doctor.tsx: Auth state change event:", event, "session:", session);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -51,6 +52,7 @@ const Doctor = () => {
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Doctor.tsx: Initial getSession result:", session);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -63,25 +65,36 @@ const Doctor = () => {
   }, []);
 
   const fetchDoctorProfile = async (userId: string) => {
+    console.log("Doctor.tsx: Fetching doctor profile for userId:", userId);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    if (!error && data) {
+    if (error) {
+      console.error("Doctor.tsx: Error fetching doctor profile:", error);
+      toast({
+        title: "Erro ao carregar perfil do doutor",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else if (data) {
+      console.log("Doctor.tsx: Doctor profile fetched:", data);
       setDoctorProfile(data);
     }
   };
 
   useEffect(() => {
     if (!loading && !user) {
+      console.log("Doctor.tsx: User not authenticated, navigating to /auth");
       navigate("/auth");
     }
   }, [user, loading, navigate]);
 
   useEffect(() => {
     if (user && activeTab === "schedule" && selectedDate) {
+      console.log("Doctor.tsx: Fetching slots for selected date:", selectedDate);
       fetchSlots();
       setSelectedSlotIds([]);
     }
@@ -89,18 +102,23 @@ const Doctor = () => {
 
   useEffect(() => {
     if (user && activeTab === "appointments") {
+      console.log("Doctor.tsx: Fetching appointments.");
       fetchAppointments();
     }
   }, [user, activeTab]);
 
   useEffect(() => {
     if (user && activeTab === "patients") {
+      console.log("Doctor.tsx: Fetching patients.");
       fetchPatients();
     }
   }, [user, activeTab]);
 
   const fetchSlots = async () => {
-    if (!user || !selectedDate) return;
+    if (!user || !selectedDate) {
+      console.log("Doctor.tsx: Skipping fetchSlots, user or selectedDate is missing.");
+      return;
+    }
     
     setLoadingSlots(true);
     const startOfDay = new Date(selectedDate);
@@ -109,6 +127,7 @@ const Doctor = () => {
     const endOfDay = new Date(selectedDate);
     endOfDay.setHours(23, 59, 59, 999);
 
+    console.log(`Doctor.tsx: Fetching slots for doctor ${user.id} from ${startOfDay.toISOString()} to ${endOfDay.toISOString()}`);
     const { data, error } = await supabase
       .from('availability_slots')
       .select('*')
@@ -118,20 +137,24 @@ const Doctor = () => {
       .order('start_time', { ascending: true });
 
     if (error) {
-      console.error("Error fetching slots:", error);
+      console.error("Doctor.tsx: Error fetching slots:", error);
       toast({
         title: "Erro ao carregar horários",
         description: error.message,
         variant: "destructive",
       });
     } else {
+      console.log("Doctor.tsx: Slots fetched:", data);
       setSlots(data || []);
     }
     setLoadingSlots(false);
   };
 
   const createDefaultSlots = async () => {
-    if (!user || !selectedDate) return;
+    if (!user || !selectedDate) {
+      console.log("Doctor.tsx: Skipping createDefaultSlots, user or selectedDate is missing.");
+      return;
+    }
     
     setLoadingSlots(true);
     const newSlots: Database['public']['Tables']['availability_slots']['Insert'][] = []; // Type assertion
@@ -151,8 +174,8 @@ const Doctor = () => {
     const breakEnd = new Date(date);
     breakEnd.setHours(16, 15, 0, 0);
 
-    console.log("Attempting to create slots for:", selectedDate.toISOString());
-    console.log("Doctor ID:", user.id);
+    console.log("Doctor.tsx: Attempting to create slots for:", selectedDate.toISOString());
+    console.log("Doctor.tsx: Doctor ID:", user.id);
 
     while (currentSlotTime.getTime() < endOfDayLimit.getTime()) {
       const startTime = new Date(currentSlotTime);
@@ -182,20 +205,22 @@ const Doctor = () => {
       currentSlotTime = endTime; // O próximo slot começa onde este termina
     }
 
-    console.log("Slots to insert:", newSlots);
+    console.log("Doctor.tsx: Slots to insert:", newSlots);
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('availability_slots')
-      .insert(newSlots);
+      .insert(newSlots)
+      .select(); // Adicionado .select() para ver os dados inseridos
 
     if (error) {
-      console.error("Error creating slots:", error);
+      console.error("Doctor.tsx: Error creating slots:", error);
       toast({
         title: "Erro",
         description: error.message,
         variant: "destructive",
       });
     } else {
+      console.log("Doctor.tsx: Slots created successfully:", data);
       toast({
         title: "Sucesso",
         description: "Horários criados com sucesso!",
@@ -206,20 +231,22 @@ const Doctor = () => {
   };
 
   const toggleSlotAvailability = async (slotId: string, currentStatus: boolean) => {
-    console.log(`Toggling slot ${slotId} from ${currentStatus} to ${!currentStatus}`);
-    const { error } = await supabase
+    console.log(`Doctor.tsx: Toggling slot ${slotId} from ${currentStatus} to ${!currentStatus}`);
+    const { data, error } = await supabase
       .from('availability_slots')
       .update({ is_available: !currentStatus })
-      .eq('id', slotId);
+      .eq('id', slotId)
+      .select(); // Adicionado .select() para ver os dados atualizados
 
     if (error) {
-      console.error("Error toggling slot availability:", error);
+      console.error("Doctor.tsx: Error toggling slot availability:", error);
       toast({
         title: "Erro",
         description: error.message,
         variant: "destructive",
       });
     } else {
+      console.log("Doctor.tsx: Slot availability updated:", data);
       fetchSlots();
     }
   };
@@ -243,20 +270,21 @@ const Doctor = () => {
   const handleBulkDeleteSlots = async () => {
     if (selectedSlotIds.length === 0) return;
     setLoadingSlots(true);
-    console.log("Attempting to delete slots:", selectedSlotIds);
-    const { error } = await supabase
+    console.log("Doctor.tsx: Attempting to delete slots:", selectedSlotIds);
+    const { data, error } = await supabase
       .from('availability_slots')
       .delete()
       .in('id', selectedSlotIds);
 
     if (error) {
-      console.error("Error deleting bulk slots:", error);
+      console.error("Doctor.tsx: Error deleting bulk slots:", error);
       toast({
         title: "Erro",
         description: "Não foi possível excluir os horários selecionados.",
         variant: "destructive",
       });
     } else {
+      console.log("Doctor.tsx: Slots deleted successfully:", data);
       toast({
         title: "Sucesso",
         description: `${selectedSlotIds.length} horários excluídos com sucesso!`,
@@ -270,20 +298,22 @@ const Doctor = () => {
   const handleBulkToggleAvailability = async (makeAvailable: boolean) => {
     if (selectedSlotIds.length === 0) return;
     setLoadingSlots(true);
-    console.log(`Attempting to set availability for slots ${selectedSlotIds} to ${makeAvailable}`);
-    const { error } = await supabase
+    console.log(`Doctor.tsx: Attempting to set availability for slots ${selectedSlotIds} to ${makeAvailable}`);
+    const { data, error } = await supabase
       .from('availability_slots')
       .update({ is_available: makeAvailable })
-      .in('id', selectedSlotIds);
+      .in('id', selectedSlotIds)
+      .select(); // Adicionado .select() para ver os dados atualizados
 
     if (error) {
-      console.error("Error bulk toggling availability:", error);
+      console.error("Doctor.tsx: Error bulk toggling availability:", error);
       toast({
         title: "Erro",
         description: "Não foi possível alterar a disponibilidade dos horários selecionados.",
         variant: "destructive",
       });
     } else {
+      console.log("Doctor.tsx: Bulk slot availability updated:", data);
       toast({
         title: "Sucesso",
         description: `${selectedSlotIds.length} horários marcados como ${makeAvailable ? 'disponíveis' : 'indisponíveis'}!`,
@@ -295,11 +325,12 @@ const Doctor = () => {
   };
 
   const fetchAppointments = async () => {
+    console.log("Doctor.tsx: Fetching appointments for doctor.");
     const { data: appts, error } = await supabase
       .rpc('get_appointments_for_doctor');
 
     if (error) {
-      console.error("Error fetching appointments:", error);
+      console.error("Doctor.tsx: Error fetching appointments:", error);
       toast({
         title: "Erro ao carregar consultas",
         description: error.message,
@@ -310,27 +341,31 @@ const Doctor = () => {
         ...a,
         patient_profile: { id: a.patient_id, full_name: a.patient_full_name }
       }));
+      console.log("Doctor.tsx: Appointments fetched:", withPatients);
       setAppointments(withPatients);
     } else {
+      console.log("Doctor.tsx: No appointments found.");
       setAppointments([]);
     }
   };
 
   const updateAppointmentStatus = async (id: string, status: string) => {
-    console.log(`Updating appointment ${id} status to ${status}`);
-    const { error } = await supabase
+    console.log(`Doctor.tsx: Updating appointment ${id} status to ${status}`);
+    const { data, error } = await supabase
       .from('appointments')
       .update({ status })
-      .eq('id', id);
+      .eq('id', id)
+      .select(); // Adicionado .select() para ver os dados atualizados
 
     if (error) {
-      console.error("Error updating appointment status:", error);
+      console.error("Doctor.tsx: Error updating appointment status:", error);
       toast({
         title: "Erro",
         description: error.message,
         variant: "destructive",
       });
     } else {
+      console.log("Doctor.tsx: Appointment status updated:", data);
       toast({
         title: "Sucesso",
         description: "Status atualizado!",
@@ -340,26 +375,30 @@ const Doctor = () => {
   };
 
   const fetchPatients = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log("Doctor.tsx: Skipping fetchPatients, user is missing.");
+      return;
+    }
 
-    console.log('Fetching patients for doctor:', user.id);
+    console.log('Doctor.tsx: Fetching patients for doctor:', user.id);
     const { data: patientsData, error } = await supabase
       .rpc('get_patients_for_doctor');
 
     if (error) {
-      console.error('Error fetching patients:', error);
+      console.error('Doctor.tsx: Error fetching patients:', error);
       toast({
         title: "Erro ao carregar pacientes",
         description: error.message,
         variant: "destructive",
       });
     } else {
-      console.log('Patients fetched:', patientsData);
+      console.log('Doctor.tsx: Patients fetched:', patientsData);
       setPatients(patientsData || []);
     }
   };
 
   const handleSignOut = async () => {
+    console.log("Doctor.tsx: Attempting to sign out.");
     await supabase.auth.signOut();
     navigate("/");
   };
