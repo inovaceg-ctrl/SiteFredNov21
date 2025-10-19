@@ -520,7 +520,7 @@ const Doctor = () => {
                     Nenhum paciente encontrado
                   </p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-3 max-h-[60vh] overflow-y-auto">
                     {patients.map((patient) => (
                       <div key={patient.id} className="border rounded-lg p-4">
                         <div className="flex items-start justify-between mb-2">
