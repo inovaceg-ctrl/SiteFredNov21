@@ -133,9 +133,24 @@ const Doctor = () => {
     const endOfDayLimit = new Date(date);
     endOfDayLimit.setHours(20, 0, 0, 0);
 
+    // Definir o intervalo de pausa
+    const breakStart = new Date(date);
+    breakStart.setHours(15, 45, 0, 0);
+    const breakEnd = new Date(date);
+    breakEnd.setHours(16, 15, 0, 0);
+
     while (currentSlotTime.getTime() < endOfDayLimit.getTime()) {
       const startTime = new Date(currentSlotTime);
       const endTime = new Date(currentSlotTime.getTime() + 45 * 60 * 1000); // Adiciona 45 minutos
+
+      // Verifica se o slot atual se sobrepõe ao intervalo de pausa
+      const overlapsBreak = (startTime.getTime() < breakEnd.getTime() && endTime.getTime() > breakStart.getTime());
+
+      if (overlapsBreak) {
+        // Se o slot se sobrepõe, pula para o final do intervalo de pausa
+        currentSlotTime = new Date(breakEnd);
+        continue; // Pula para a próxima iteração do loop
+      }
 
       // Se o final do slot exceder o limite de 20:00, não cria este slot
       if (endTime.getTime() > endOfDayLimit.getTime()) {
