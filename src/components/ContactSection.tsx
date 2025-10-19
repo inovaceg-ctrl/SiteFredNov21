@@ -1,7 +1,7 @@
 import { Mail, Phone, Instagram } from "lucide-react";
 import React, { useState } from "react";
-import emailjs from 'emailjs-com';
 import { useToast } from "@/hooks/use-toast"; // Importar useToast
+import { supabase } from "@/integrations/supabase/client"; // Importar o cliente Supabase
 
 const ContactSection = () => {
   const { toast } = useToast(); // Inicializar o hook de toast
@@ -23,28 +23,29 @@ const ContactSection = () => {
     setIsSending(true);
 
     try {
-      await emailjs.send(
-        import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-        {
-          user_name: formData.name,
-          user_email: formData.email,
-          user_phone: formData.phone,
-          message: formData.message,
-        },
-        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-      );
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          content: formData.message,
+        });
+
+      if (error) {
+        throw error;
+      }
 
       toast({
         title: "Mensagem Enviada!",
         description: "Sua mensagem foi enviada com sucesso. Em breve entraremos em contato.",
       });
       setFormData({ name: "", email: "", phone: "", message: "" }); // Limpar formulário
-    } catch (error) {
-      console.error("Erro ao enviar e-mail:", error);
+    } catch (error: any) {
+      console.error("Erro ao enviar mensagem para o Supabase:", error);
       toast({
         title: "Erro ao Enviar Mensagem",
-        description: "Ocorreu um erro ao tentar enviar sua mensagem. Por favor, tente novamente mais tarde.",
+        description: error.message || "Ocorreu um erro ao tentar enviar sua mensagem. Por favor, tente novamente mais tarde.",
         variant: "destructive",
       });
     } finally {
