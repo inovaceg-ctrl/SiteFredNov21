@@ -3,12 +3,22 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, Instagram, LogIn, LogOut, MessageSquare } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false); // Estado para controlar o Drawer
 
   useEffect(() => {
     const fetchUserRole = async (userId: string) => {
@@ -51,7 +61,7 @@ const Navbar = () => {
       const section = document.getElementById(sectionId);
       if (section) {
         section.scrollIntoView({ behavior: 'smooth' });
-        setIsMenuOpen(false);
+        setIsDrawerOpen(false); // Fecha o drawer após rolar
       }
     } catch (error) {
       console.error(`Error scrolling to ${sectionId}:`, error);
@@ -60,7 +70,7 @@ const Navbar = () => {
       if (element) {
         const yOffset = element.getBoundingClientRect().top + window.pageYOffset;
         window.scrollTo({top: yOffset, behavior: 'smooth'});
-        setIsMenuOpen(false);
+        setIsDrawerOpen(false); // Fecha o drawer após rolar
       }
     }
   };
@@ -167,137 +177,133 @@ const Navbar = () => {
         <div className="hidden md:block">
           <Button 
             className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-6"
-            onClick={() => {
-              const element = document.getElementById('contact');
-              if (element) element.scrollIntoView({ behavior: 'smooth' });
-            }}
+            onClick={() => scrollToSection('contact')}
           >
             Agende Agora
           </Button>
         </div>
 
-        {/* Mobile Menu Button */}
-        <button 
-          className="md:hidden p-2 text-foreground"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </div>
-      
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-card/95 backdrop-blur-lg w-full shadow-lg py-6 border-t border-border animate-fade-in">
-          <div className="container mx-auto flex flex-col space-y-2 px-4">
-            <a 
-              href="#about"
-              onClick={(e) => {
-                e.preventDefault();
-                const element = document.querySelector('#about');
-                if (element) element.scrollIntoView({ behavior: 'smooth' });
-                setIsMenuOpen(false);
-              }}
-              className="font-medium text-foreground/80 hover:text-foreground bg-accent/50 hover:bg-accent rounded-lg px-4 py-3 transition-colors text-lg block"
-            >
-              Sobre
-            </a>
-            <a 
-              href="#credentials"
-              onClick={(e) => {
-                e.preventDefault();
-                const element = document.querySelector('#credentials');
-                if (element) element.scrollIntoView({ behavior: 'smooth' });
-                setIsMenuOpen(false);
-              }}
-              className="font-medium text-foreground/80 hover:text-foreground bg-accent/50 hover:bg-accent rounded-lg px-4 py-3 transition-colors text-lg block"
-            >
-              Formação
-            </a>
-            <a 
-              href="#contact"
-              onClick={(e) => {
-                e.preventDefault();
-                const element = document.getElementById('contact');
-                if (element) element.scrollIntoView({ behavior: 'smooth' });
-                setIsMenuOpen(false);
-              }}
-              className="font-medium text-foreground/80 hover:text-foreground bg-accent/50 hover:bg-accent rounded-lg px-4 py-3 transition-colors text-lg block"
-            >
-              Contato
-            </a>
-            <a 
-              href="https://instagram.com/drfredmartinsjf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-foreground/80 hover:text-foreground bg-accent/50 hover:bg-accent rounded-lg px-4 py-3 transition-colors text-lg flex items-center gap-2"
-            >
-              <Instagram size={20} />
-              Instagram
-            </a>
-            {user && userRole === 'doctor' && (
-              <Button 
-                onClick={() => {
-                  navigate("/doctor");
-                  setIsMenuOpen(false);
-                }}
-                variant="ghost"
-                className="font-medium w-full justify-start text-lg"
-              >
-                Portal do Profissional
-              </Button>
-            )}
-            {user && userRole === 'patient' && (
-              <Button 
-                onClick={() => {
-                  navigate("/patient");
-                  setIsMenuOpen(false);
-                }}
-                variant="ghost"
-                className="font-medium w-full justify-start text-lg"
-              >
-                Portal do Paciente
-              </Button>
-            )}
-            {user ? (
-              <Button 
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  navigate("/");
-                  setIsMenuOpen(false);
-                }}
-                variant="outline"
-                className="flex items-center gap-2 w-full mt-2"
-              >
-                <LogOut size={16} />
-                Sair
-              </Button>
-            ) : (
-              <Button 
-                onClick={() => {
-                  navigate("/auth");
-                  setIsMenuOpen(false);
-                }}
-                variant="outline"
-                className="flex items-center gap-2 w-full mt-2"
-              >
-                <LogIn size={16} />
-                Entrar
-              </Button>
-            )}
-            <Button
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full w-full mt-2 py-4 text-lg"
-              onClick={() => {
-                const element = document.getElementById('contact');
-                if (element) element.scrollIntoView({ behavior: 'smooth' });
-                setIsMenuOpen(false);
-              }}
-            >
-              Agende Agora
+        {/* Mobile Menu Button (Drawer Trigger) */}
+        <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+          <DrawerTrigger asChild className="md:hidden">
+            <Button variant="ghost" className="p-2 text-foreground" aria-label="Abrir menu">
+              <Menu size={24} />
             </Button>
-          </div>
-        </div>
-      )}
+          </DrawerTrigger>
+          <DrawerContent className="h-[80vh] rounded-t-[10px] flex flex-col">
+            <DrawerHeader className="text-left">
+              <DrawerTitle>Navegação</DrawerTitle>
+              <DrawerDescription>Explore o site ou acesse seu portal</DrawerDescription>
+            </DrawerHeader>
+            <div className="p-4 flex-1 overflow-y-auto">
+              <div className="flex flex-col space-y-2">
+                <a 
+                  href="#about"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToSection('about');
+                  }}
+                  className="font-medium text-foreground/80 hover:text-foreground bg-accent/50 hover:bg-accent rounded-lg px-4 py-3 transition-colors text-lg block"
+                >
+                  Sobre
+                </a>
+                <a 
+                  href="#credentials"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToSection('credentials');
+                  }}
+                  className="font-medium text-foreground/80 hover:text-foreground bg-accent/50 hover:bg-accent rounded-lg px-4 py-3 transition-colors text-lg block"
+                >
+                  Formação
+                </a>
+                <a 
+                  href="#contact"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    scrollToSection('contact');
+                  }}
+                  className="font-medium text-foreground/80 hover:text-foreground bg-accent/50 hover:bg-accent rounded-lg px-4 py-3 transition-colors text-lg block"
+                >
+                  Contato
+                </a>
+                <a 
+                  href="https://instagram.com/drfredmartinsjf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-foreground/80 hover:text-foreground bg-accent/50 hover:bg-accent rounded-lg px-4 py-3 transition-colors text-lg flex items-center gap-2"
+                >
+                  <Instagram size={20} />
+                  Instagram
+                </a>
+                {user && userRole === 'doctor' && (
+                  <Button 
+                    onClick={() => {
+                      navigate("/doctor");
+                      setIsDrawerOpen(false);
+                    }}
+                    variant="ghost"
+                    className="font-medium w-full justify-start text-lg"
+                  >
+                    Portal do Profissional
+                  </Button>
+                )}
+                {user && userRole === 'patient' && (
+                  <Button 
+                    onClick={() => {
+                      navigate("/patient");
+                      setIsDrawerOpen(false);
+                    }}
+                    variant="ghost"
+                    className="font-medium w-full justify-start text-lg"
+                  >
+                    Portal do Paciente
+                  </Button>
+                )}
+                {user ? (
+                  <Button 
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      navigate("/");
+                      setIsDrawerOpen(false);
+                    }}
+                    variant="outline"
+                    className="flex items-center gap-2 w-full mt-2"
+                  >
+                    <LogOut size={16} />
+                    Sair
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={() => {
+                      navigate("/auth");
+                      setIsDrawerOpen(false);
+                    }}
+                    variant="outline"
+                    className="flex items-center gap-2 w-full mt-2"
+                  >
+                    <LogIn size={16} />
+                    Entrar
+                  </Button>
+                )}
+                <Button
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full w-full mt-2 py-4 text-lg"
+                  onClick={() => {
+                    scrollToSection('contact');
+                  }}
+                >
+                  Agende Agora
+                </Button>
+              </div>
+            </div>
+            <DrawerFooter>
+              <DrawerClose asChild>
+                <Button variant="outline">Fechar</Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      </div>
     </header>
   );
 };
