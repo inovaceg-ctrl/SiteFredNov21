@@ -105,14 +105,19 @@ const Patient = () => {
   };
 
   const fetchAvailableSlots = async (doctorId: string) => {
-    const now = new Date(); // Alterado para buscar a partir do momento atual
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Define para o início do dia atual (local)
+    const startOfTodayISO = today.toISOString(); // Converte para ISO string (UTC)
+
+    console.log("Fetching slots for doctor:", doctorId);
+    console.log("Start of today (ISO):", startOfTodayISO);
 
     const { data, error } = await (supabase as any)
       .from('availability_slots')
       .select('*')
       .eq('doctor_id', doctorId)
       .eq('is_available', true)
-      .gte('start_time', now.toISOString()) // Filtrar a partir do momento atual
+      .gte('start_time', startOfTodayISO) // Filtra a partir do início do dia atual
       .order('start_time', { ascending: true })
       .limit(10);
     
@@ -123,6 +128,8 @@ const Patient = () => {
         description: "Não foi possível buscar os horários disponíveis. Tente novamente.",
         variant: "destructive",
       });
+    } else {
+      console.log("Available slots data:", data);
     }
     setAvailableSlots(data || []);
   };
