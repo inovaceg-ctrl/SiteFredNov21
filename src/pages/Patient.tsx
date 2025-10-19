@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { OnlineConsultationTab } from "@/components/OnlineConsultationTab";
 import { Database } from "@/integrations/supabase/types"; // Import Database type
-import PatientDocumentsPage from "@/components/PatientDocumentsPage"; // Importar o novo componente de documentos
+import PatientDocumentsPage from "@/pages/PatientDocumentsPage"; // Caminho de importação CORRIGIDO
 
 const Patient = () => {
   const navigate = useNavigate();
