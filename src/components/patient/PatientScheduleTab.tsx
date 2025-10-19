@@ -45,6 +45,19 @@ export const PatientScheduleTab = () => {
     },
   });
 
+  const { data: availableDates, isLoading: isLoadingAvailableDates } = useQuery({
+    queryKey: ["availableDates", selectedDoctorId],
+    queryFn: async () => {
+      if (!selectedDoctorId) return [];
+      const { data, error } = await supabase.rpc("get_doctor_available_dates", {
+        _doctor_id: selectedDoctorId,
+      });
+      if (error) throw error;
+      return data.map((d: string) => new Date(d)); // Convert string dates to Date objects
+    },
+    enabled: !!selectedDoctorId,
+  });
+
   const { data: availableSlots, isLoading: isLoadingSlots } = useQuery({
     queryKey: ["availableSlots", selectedDoctorId, selectedDate],
     queryFn: async () => {
@@ -167,7 +180,32 @@ export const PatientScheduleTab = () => {
                 }}
                 initialFocus
                 locale={ptBR}
-                disabled={(date) => date < new Date()}
+                disabled={(date) => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0); // Normaliza para o início do dia
+
+                  // Desabilita datas no passado
+                  if (date < today) {
+                    return true;
+                  }
+
+                  // Se um profissional foi selecionado e temos datas disponíveis,
+                  // desabilita as datas que não estão na lista de datas disponíveis.
+                  if (selectedDoctorId && availableDates) {
+                    const dateString = format(date, 'yyyy-MM-dd');
+                    return !availableDates.some(d => format(d, 'yyyy-MM-dd') === dateString);
+                  }
+
+                  // Se nenhum profissional foi selecionado, ou as datas disponíveis estão carregando,
+                  // apenas desabilita datas passadas.
+                  return false;
+                }}
+                modifiers={{
+                  available: availableDates, // Passa o array de objetos Date
+                }}
+                modifiersStyles={{
+                  available: { fontWeight: 'bold', color: 'hsl(var(--primary))' }, // Usa a cor primária do Tailwind
+                }}
               />
             </PopoverContent>
           </Popover>

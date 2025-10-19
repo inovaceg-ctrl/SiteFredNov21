@@ -653,6 +653,12 @@ export type Database = {
           patient_zip_code: string;
         }[];
       };
+      get_doctor_available_dates: { // Nova função RPC
+        Args: {
+          _doctor_id: string;
+        };
+        Returns: string[]; // Retorna um array de strings de data (ex: "YYYY-MM-DD")
+      };
     };
     Enums: {
       app_role: "patient" | "doctor" | "admin";
