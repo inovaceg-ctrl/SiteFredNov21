@@ -211,23 +211,38 @@ const Patient = () => {
 
     console.log("Patient.tsx: Attempting to book appointment:", { patient_id: user.id, doctor_id: selectedDoctor, slot_id: slotId, start_time: startTime, end_time: endTime });
 
-    // First, mark the slot as unavailable
-    const { error: updateSlotError } = await supabase
+    // Step 1: Atomically mark the slot as unavailable ONLY IF it's currently available
+    const { data: updatedSlot, error: updateSlotError } = await supabase
       .from('availability_slots')
       .update({ is_available: false })
-      .eq('id', slotId);
+      .eq('id', slotId)
+      .eq('is_available', true) // Crucial: only update if it's currently available
+      .select(); // Select the updated row to check if any row was actually updated
 
     if (updateSlotError) {
       console.error("Patient.tsx: Error updating slot availability:", updateSlotError);
       toast({
         title: "Erro",
-        description: "Não foi possível reservar o horário. Tente novamente.",
+        description: "Não foi possível reservar o horário devido a um erro no sistema. Tente novamente.",
         variant: "destructive",
       });
+      fetchAvailableSlots(selectedDoctor); // Refresh slots in case of a system error
       return;
     }
 
-    // Then, create the appointment
+    if (!updatedSlot || updatedSlot.length === 0) {
+      // This means the slot was already taken by another user or process
+      console.warn("Patient.tsx: Attempted to book an already unavailable slot:", slotId);
+      toast({
+        title: "Horário Indisponível",
+        description: "Este horário acabou de ser reservado por outra pessoa. Por favor, escolha outro.",
+        variant: "destructive",
+      });
+      fetchAvailableSlots(selectedDoctor); // Refresh slots to show it's gone
+      return;
+    }
+
+    // Step 2: If the slot was successfully marked as unavailable, proceed to create the appointment
     const { data: appointmentData, error: appointmentError } = await supabase
       .from('appointments')
       .insert({
@@ -246,12 +261,13 @@ const Patient = () => {
       await supabase
         .from('availability_slots')
         .update({ is_available: true })
-        .eq('id', slotId);
+        .eq('id', slotId); // Revert only if the slot was successfully marked unavailable by *this* operation
       toast({
         title: "Erro",
         description: appointmentError.message || "Não foi possível agendar a consulta. O horário foi liberado.",
         variant: "destructive",
       });
+      fetchAvailableSlots(selectedDoctor); // Refresh slots after potential revert
     } else {
       console.log("Patient.tsx: Appointment booked successfully:", appointmentData);
       toast({
