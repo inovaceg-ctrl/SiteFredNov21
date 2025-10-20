@@ -5,7 +5,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar as CalendarIcon, Clock, FileText, LogOut, Users, Video, BarChart3, Loader2, Edit, User as UserIcon, MessageSquare, Trash2, CheckCircle, XCircle, MessageSquareText, MapPin, Phone } from "lucide-react"; // Adicionado MapPin e Phone
+import { Calendar as CalendarIcon, Clock, FileText, LogOut, Users, Video, BarChart3, Loader2, Edit, User as UserIcon, MessageSquare, Trash2, CheckCircle, XCircle, MessageSquareText, MapPin, Phone, Mail } from "lucide-react"; // Adicionado Mail
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
@@ -19,8 +19,9 @@ import { DoctorProfileForm } from "@/components/DoctorProfileForm";
 import { DoctorOnlineConsultationTab } from "@/components/DoctorOnlineConsultationTab";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Database } from "@/integrations/supabase/types"; // Import Database type
-import { WhatsappTranscriptionsPage } from "@/pages/WhatsappTranscriptionsPage"; // Caminho de importação CORRIGIDO
+import { Database } from "@/integrations/supabase/types";
+import { WhatsappTranscriptionsPage } from "@/pages/WhatsappTranscriptionsPage";
+import { DoctorFormResponsesTab } from "@/components/DoctorFormResponsesTab"; // Importar o novo componente
 
 const Doctor = () => {
   const navigate = useNavigate();
@@ -474,6 +475,10 @@ const Doctor = () => {
               <MessageSquareText className="h-4 w-4 mr-2" />
               Transcrições WhatsApp
             </TabsTrigger>
+            <TabsTrigger value="form-responses" className="px-3 py-2 text-sm whitespace-nowrap md:w-auto md:px-6 md:py-3 md:text-base">
+              <Mail className="h-4 w-4 mr-2" />
+              Respostas Formulário
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
@@ -566,6 +571,19 @@ const Doctor = () => {
                 </CardHeader>
                 <CardContent>
                   <Button className="w-full" variant="outline">Ver Transcrições</Button>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab("form-responses")}>
+                <CardHeader>
+                  <Mail className="h-8 w-8 mb-2 text-primary" />
+                  <CardTitle>Respostas Formulário</CardTitle>
+                  <CardDescription>
+                    Visualize mensagens enviadas pelo formulário de contato
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full" variant="outline">Ver Mensagens</Button>
                 </CardContent>
               </Card>
             </div>
@@ -874,6 +892,10 @@ const Doctor = () => {
 
           <TabsContent value="whatsapp-transcriptions">
             <WhatsappTranscriptionsPage />
+          </TabsContent>
+
+          <TabsContent value="form-responses">
+            {user && <DoctorFormResponsesTab />}
           </TabsContent>
         </Tabs>
       </main>
