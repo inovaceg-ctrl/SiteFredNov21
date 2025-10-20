@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useForm } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form"; // Corrigido: importado de react-hook-form
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Loader2, User as UserIcon } from "lucide-react";
 import { BRAZILIAN_STATES } from "@/lib/brazilian-states";
-import { formatPhone, unformatPhone } from "@/lib/format-phone"; // Importar formatPhone
+import { formatPhone, unformatPhone } from "@/lib/format-phone";
 import { format } from "date-fns";
 
 const profileSchema = z.object({
