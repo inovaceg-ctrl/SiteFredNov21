@@ -82,7 +82,7 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
         past_sessions_history: patient.past_sessions_history || "",
         therapist_id: patient.therapist_id || "",
         consent_status: patient.consent_status || false,
-        consent_date: patient.consent_date ? format(new Date(patient.consent_date), "yyyy-MM-dd") : "",
+        consent_date: patient.consent_status ? (patient.consent_date ? format(new Date(patient.consent_date), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")) : "",
       });
       fetchDoctorNotes();
       
@@ -232,7 +232,7 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
-                placeholder="32-9-8409-6947"
+                placeholder="99-9-9999-9999"
                 maxLength={15}
               />
             </div>
@@ -244,7 +244,7 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
                 type="tel"
                 value={formData.whatsapp}
                 onChange={(e) => setFormData({ ...formData, whatsapp: formatPhone(e.target.value) })}
-                placeholder="32-9-8409-6947"
+                placeholder="99-9-9999-9999"
                 maxLength={15}
               />
             </div>
@@ -419,7 +419,7 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
             <Checkbox
               id="consent_status"
               checked={formData.consent_status}
-              onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, consent_status: checked as boolean }))}
+              onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, consent_status: checked as boolean, consent_date: checked ? (prev.consent_date || format(new Date(), "yyyy-MM-dd")) : "" }))}
             />
             <Label htmlFor="consent_status">Consentimento Assinado</Label>
           </div>

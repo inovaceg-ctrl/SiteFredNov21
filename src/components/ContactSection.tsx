@@ -253,7 +253,7 @@ const ContactSection = () => {
                   value={formData.phone}
                   onChange={handlePhoneChange} // Usando handlePhoneChange
                   className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="(00) 0000-0000"
+                  placeholder="99-9-9999-9999"
                   maxLength={15} // Adicionado maxLength
                 />
               </div>
@@ -270,7 +270,7 @@ const ContactSection = () => {
                   value={formData.whatsapp}
                   onChange={handleWhatsAppChange}
                   className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="(00) 00000-0000"
+                  placeholder="99-9-9999-9999"
                   maxLength={15}
                 />
               </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm } from "@hookform/resolvers/zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -206,7 +206,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
                   <FormControl>
                     <Input
                       type="tel"
-                      placeholder="(00) 0000-0000"
+                      placeholder="99-9-9999-9999"
                       maxLength={15}
                       {...field}
                       onChange={(e) => field.onChange(formatPhone(e.target.value))}
@@ -225,7 +225,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
                   <FormControl>
                     <Input
                       type="tel"
-                      placeholder="(00) 00000-0000"
+                      placeholder="99-9-9999-9999"
                       maxLength={15}
                       {...field}
                       onChange={(e) => field.onChange(formatPhone(e.target.value))}
