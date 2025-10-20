@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { BRAZILIAN_STATES } from "@/lib/brazilian-states";
-import { formatWhatsApp, unformatPhone } from "@/lib/format-phone";
+import { formatPhone, unformatPhone } from "@/lib/format-phone"; // Importar formatPhone
 import { useQuery } from "@tanstack/react-query"; // Importar useQuery
 
 interface EditPatientDialogProps {
@@ -65,8 +65,8 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
     if (patient && open) {
       setFormData({
         full_name: patient.full_name || "",
-        phone: patient.phone || "",
-        whatsapp: patient.whatsapp || "",
+        phone: patient.phone ? formatPhone(patient.phone) : "",
+        whatsapp: patient.whatsapp ? formatPhone(patient.whatsapp) : "",
         street: patient.street || "",
         street_number: patient.street_number || "",
         neighborhood: patient.neighborhood || "",
@@ -231,7 +231,7 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
                 id="phone"
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: formatWhatsApp(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
                 placeholder="32-9-8409-6947"
                 maxLength={15}
               />
@@ -243,7 +243,7 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
                 id="whatsapp"
                 type="tel"
                 value={formData.whatsapp}
-                onChange={(e) => setFormData({ ...formData, whatsapp: formatWhatsApp(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, whatsapp: formatPhone(e.target.value) })}
                 placeholder="32-9-8409-6947"
                 maxLength={15}
               />

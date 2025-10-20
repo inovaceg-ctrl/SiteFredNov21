@@ -1,19 +1,18 @@
-export const formatWhatsApp = (value: string): string => {
+export const formatPhone = (value: string): string => {
   // Remove tudo que não é número
   const numbers = value.replace(/\D/g, '');
   
-  // Limita a 11 dígitos (DDD + 9 + 8 dígitos)
-  const limited = numbers.slice(0, 11);
-  
-  // Formata: 32-9-8409-6947
-  if (limited.length <= 2) {
-    return limited;
-  } else if (limited.length <= 3) {
-    return `${limited.slice(0, 2)}-${limited.slice(2)}`;
-  } else if (limited.length <= 7) {
-    return `${limited.slice(0, 2)}-${limited.slice(2, 3)}-${limited.slice(3)}`;
+  if (numbers.length <= 2) {
+    return numbers;
+  } else if (numbers.length <= 6) { // Ex: 32-8409
+    return `${numbers.slice(0, 2)}-${numbers.slice(2)}`;
+  } else if (numbers.length <= 10) { // Ex: 32-8409-6947 (10 dígitos)
+    return `${numbers.slice(0, 2)}-${numbers.slice(2, 6)}-${numbers.slice(6, 10)}`;
+  } else if (numbers.length <= 11) { // Ex: 32-9-8409-6947 (11 dígitos)
+    return `${numbers.slice(0, 2)}-${numbers.slice(2, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   } else {
-    return `${limited.slice(0, 2)}-${limited.slice(2, 3)}-${limited.slice(3, 7)}-${limited.slice(7, 11)}`;
+    // Se tiver mais de 11 dígitos, trunca para 11 e formata
+    return `${numbers.slice(0, 2)}-${numbers.slice(2, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   }
 };
 

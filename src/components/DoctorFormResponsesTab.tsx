@@ -8,7 +8,7 @@ import { Loader2, Mail, CheckCircle, Eye, EyeOff, Phone, MessageSquare, Calendar
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { formatWhatsApp } from "@/lib/format-phone";
+import { formatPhone } from "@/lib/format-phone"; // Importar formatPhone
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 type Message = Database['public']['Tables']['messages']['Row'];
@@ -143,13 +143,13 @@ export const DoctorFormResponsesTab: React.FC = () => {
                     {message.phone && (
                       <p className="flex items-center gap-2">
                         <Phone className="h-4 w-4 text-primary" />
-                        Telefone: <a href={`tel:${message.phone}`} className="text-blue-500 hover:underline">{message.phone}</a>
+                        Telefone: <a href={`tel:${message.phone}`} className="text-blue-500 hover:underline">{formatPhone(message.phone)}</a>
                       </p>
                     )}
                     {message.whatsapp && (
                       <p className="flex items-center gap-2">
                         <MessageSquare className="h-4 w-4 text-primary" />
-                        WhatsApp: <a href={`https://wa.me/${message.whatsapp}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{formatWhatsApp(message.whatsapp)}</a>
+                        WhatsApp: <a href={`https://wa.me/${message.whatsapp}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{formatPhone(message.whatsapp)}</a>
                       </p>
                     )}
                     {message.date_of_birth && (

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Loader2, User as UserIcon } from "lucide-react";
 import { BRAZILIAN_STATES } from "@/lib/brazilian-states";
-import { formatWhatsApp, unformatPhone } from "@/lib/format-phone";
+import { formatPhone, unformatPhone } from "@/lib/format-phone"; // Importar formatPhone
 import { format } from "date-fns";
 
 const profileSchema = z.object({
@@ -76,8 +76,8 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
       } else if (data) {
         form.reset({
           full_name: data.full_name || "",
-          phone: data.phone ? formatWhatsApp(data.phone) : "",
-          whatsapp: data.whatsapp ? formatWhatsApp(data.whatsapp) : "",
+          phone: data.phone ? formatPhone(data.phone) : "",
+          whatsapp: data.whatsapp ? formatPhone(data.whatsapp) : "",
           birth_date: data.birth_date ? format(new Date(data.birth_date), "yyyy-MM-dd") : "",
           // specialty: data.specialty || "", // Removido o campo specialty
           street: data.street || "",
@@ -209,7 +209,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
                       placeholder="(00) 0000-0000"
                       maxLength={15}
                       {...field}
-                      onChange={(e) => field.onChange(formatWhatsApp(e.target.value))}
+                      onChange={(e) => field.onChange(formatPhone(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -228,7 +228,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
                       placeholder="(00) 00000-0000"
                       maxLength={15}
                       {...field}
-                      onChange={(e) => field.onChange(formatWhatsApp(e.target.value))}
+                      onChange={(e) => field.onChange(formatPhone(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />

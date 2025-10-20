@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EditPatientDialog } from "@/components/EditPatientDialog";
-import { formatWhatsApp } from "@/lib/format-phone";
+import { formatPhone } from "@/lib/format-phone"; // Importar formatPhone
 import { DoctorProfileForm } from "@/components/DoctorProfileForm";
 import { DoctorOnlineConsultationTab } from "@/components/DoctorOnlineConsultationTab";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -762,7 +762,7 @@ const Doctor = () => {
                           <p className="flex items-center gap-2">
                             <Phone className="h-4 w-4 text-primary" />
                             WhatsApp: <a href={`https://wa.me/${apt.patient_profile.whatsapp}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                              {formatWhatsApp(apt.patient_profile.whatsapp)}
+                              {formatPhone(apt.patient_profile.whatsapp)}
                             </a>
                           </p>
                         )}
@@ -836,7 +836,7 @@ const Doctor = () => {
                               
                               <div className="flex items-start gap-2">
                                 <span className="font-medium text-muted-foreground flex-shrink-0">WhatsApp:</span>
-                                <span className="flex-grow">{patient.whatsapp ? formatWhatsApp(patient.whatsapp) : '-'}</span>
+                                <span className="flex-grow">{patient.whatsapp ? formatPhone(patient.whatsapp) : '-'}</span>
                               </div>
                               
                               <div className="flex items-start gap-2">

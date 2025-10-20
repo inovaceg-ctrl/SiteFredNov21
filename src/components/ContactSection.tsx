@@ -2,7 +2,7 @@ import { Mail, Phone, Instagram } from "lucide-react";
 import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast"; // Importar useToast
 import { supabase } from "@/integrations/supabase/client"; // Importar o cliente Supabase
-import { formatWhatsApp } from "@/lib/format-phone"; // Importar a função de formatação de WhatsApp
+import { formatPhone } from "@/lib/format-phone"; // Importar a função de formatação de telefone
 import { Checkbox } from "@/components/ui/checkbox"; // Importar Checkbox
 
 const ContactSection = () => {
@@ -31,8 +31,13 @@ const ContactSection = () => {
     }));
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedValue = formatPhone(e.target.value);
+    setFormData((prev) => ({ ...prev, phone: formattedValue }));
+  };
+
   const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formattedValue = formatWhatsApp(e.target.value);
+    const formattedValue = formatPhone(e.target.value);
     setFormData((prev) => ({ ...prev, whatsapp: formattedValue }));
   };
 
@@ -86,7 +91,7 @@ const ContactSection = () => {
         .insert({
           name: formData.name,
           email: formData.email,
-          phone: formData.phone,
+          phone: formData.phone.replace(/\D/g, ''), // Salva apenas números
           whatsapp: formData.whatsapp.replace(/\D/g, ''), // Salva apenas números
           date_of_birth: formData.date_of_birth || null, // Salva como null se vazio
           zip_code: formData.zip_code || null,
@@ -246,9 +251,10 @@ const ContactSection = () => {
                   id="phone"
                   name="phone"
                   value={formData.phone}
-                  onChange={handleChange}
+                  onChange={handlePhoneChange} // Usando handlePhoneChange
                   className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="(00) 0000-0000"
+                  maxLength={15} // Adicionado maxLength
                 />
               </div>
 

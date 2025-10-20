@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, UploadCloud, MessageSquareText, Clock, CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatPhone } from '@/lib/format-phone'; // Importar formatPhone
 
 interface WhatsappTranscriptionFormProps {
   onTranscriptionSuccess?: () => void;
