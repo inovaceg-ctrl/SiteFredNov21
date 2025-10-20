@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form"; // Corrigido: importado de react-hook-form
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +19,6 @@ const profileSchema = z.object({
   phone: z.string().optional(),
   whatsapp: z.string().optional(),
   birth_date: z.string().optional(),
-  // specialty: z.string().optional(), // Removido o campo specialty
   street: z.string().optional(),
   street_number: z.string().optional(),
   neighborhood: z.string().optional(),
@@ -40,6 +39,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
   const [loading, setLoading] = useState(false);
   const [cities, setCities] = useState<string[]>([]);
   const [loadingCities, setLoadingCities] = useState(false);
+  const [isFetchingCep, setIsFetchingCep] = useState(false); // Novo estado para CEP
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -48,7 +48,6 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
       phone: "",
       whatsapp: "",
       birth_date: "",
-      // specialty: "", // Removido o campo specialty
       street: "",
       street_number: "",
       neighborhood: "",
@@ -79,7 +78,6 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
           phone: data.phone ? formatPhone(data.phone) : "",
           whatsapp: data.whatsapp ? formatPhone(data.whatsapp) : "",
           birth_date: data.birth_date ? format(new Date(data.birth_date), "yyyy-MM-dd") : "",
-          // specialty: data.specialty || "", // Removido o campo specialty
           street: data.street || "",
           street_number: data.street_number || "",
           neighborhood: data.neighborhood || "",
@@ -115,6 +113,50 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
     }
   };
 
+  const handleZipCodeLookup = async (cep: string) => {
+    const cleanedCep = cep.replace(/\D/g, '');
+    form.setValue("zip_code", cleanedCep); // Atualiza o campo CEP no formulário
+
+    if (cleanedCep.length === 8) {
+      setIsFetchingCep(true);
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cleanedCep}/json/`);
+        const data = await response.json();
+
+        if (data.erro) {
+          toast({
+            title: "CEP não encontrado",
+            description: "Verifique o CEP digitado e tente novamente.",
+            variant: "destructive",
+          });
+          form.setValue("state", "");
+          form.setValue("city", "");
+          setCities([]);
+        } else {
+          form.setValue("state", data.uf);
+          form.setValue("city", data.localidade);
+          fetchCities(data.uf); // Carrega as cidades para o estado encontrado
+        }
+      } catch (error) {
+        console.error("Erro ao buscar CEP:", error);
+        toast({
+          title: "Erro na consulta de CEP",
+          description: "Não foi possível buscar o CEP. Tente novamente mais tarde.",
+          variant: "destructive",
+        });
+        form.setValue("state", "");
+        form.setValue("city", "");
+        setCities([]);
+      } finally {
+        setIsFetchingCep(false);
+      }
+    } else if (cleanedCep.length < 8) {
+      form.setValue("state", "");
+      form.setValue("city", "");
+      setCities([]);
+    }
+  };
+
   const onSubmit = async (values: ProfileFormValues) => {
     setLoading(true);
     const { error } = await supabase
@@ -124,7 +166,6 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
         phone: values.phone ? unformatPhone(values.phone) : null,
         whatsapp: values.whatsapp ? unformatPhone(values.whatsapp) : null,
         birth_date: values.birth_date || null,
-        // specialty: values.specialty || null, // Removido o campo specialty
         street: values.street || null,
         street_number: values.street_number || null,
         neighborhood: values.neighborhood || null,
@@ -178,23 +219,6 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
               </FormItem>
             )}
           />
-
-          {/* Removido o campo specialty */}
-          {/*
-          <FormField
-            control={form.control}
-            name="specialty"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Especialidade</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ex: Psicanalista, Terapeuta" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          */}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
@@ -260,8 +284,16 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
               <FormItem>
                 <FormLabel>CEP</FormLabel>
                 <FormControl>
-                  <Input placeholder="00000-000" {...field} />
+                  <Input
+                    placeholder="00000-000"
+                    maxLength={9}
+                    {...field}
+                    onChange={(e) => handleZipCodeLookup(e.target.value)}
+                    onBlur={(e) => handleZipCodeLookup(e.target.value)}
+                    disabled={isFetchingCep}
+                  />
                 </FormControl>
+                {isFetchingCep && <p className="text-xs text-muted-foreground mt-1">Buscando CEP...</p>}
                 <FormMessage />
               </FormItem>
             )}
@@ -278,7 +310,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
                     field.onChange(value);
                     form.setValue("city", ""); // Reset city when state changes
                     fetchCities(value);
-                  }} value={field.value}>
+                  }} value={field.value} disabled={isFetchingCep}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o estado" />
@@ -302,7 +334,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Cidade</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={!form.watch("state") || loadingCities}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={!form.watch("state") || loadingCities || isFetchingCep}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={loadingCities ? "Carregando cidades..." : "Selecione a cidade"} />
@@ -329,7 +361,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
               <FormItem>
                 <FormLabel>Rua/Avenida</FormLabel>
                 <FormControl>
-                  <Input placeholder="Nome da rua ou avenida" {...field} />
+                  <Input placeholder="Nome da rua ou avenida" {...field} disabled={isFetchingCep} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -344,7 +376,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
                 <FormItem>
                   <FormLabel>Número</FormLabel>
                   <FormControl>
-                    <Input placeholder="123" {...field} />
+                    <Input placeholder="123" {...field} disabled={isFetchingCep} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -357,7 +389,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
                 <FormItem>
                   <FormLabel>Bairro</FormLabel>
                   <FormControl>
-                    <Input placeholder="Nome do bairro" {...field} />
+                    <Input placeholder="Nome do bairro" {...field} disabled={isFetchingCep} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -365,7 +397,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full" disabled={loading || isFetchingCep}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Salvar Alterações
           </Button>
