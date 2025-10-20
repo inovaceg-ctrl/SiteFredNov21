@@ -5,7 +5,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar as CalendarIcon, Clock, FileText, LogOut, Users, Video, BarChart3, Loader2, Edit, User as UserIcon, MessageSquare, Trash2, CheckCircle, XCircle, MessageSquareText, MapPin, Phone, Mail } from "lucide-react"; // Adicionado Mail
+import { Calendar as CalendarIcon, Clock, FileText, LogOut, Users, Video, BarChart3, Loader2, Edit, User as UserIcon, MessageSquare, Trash2, CheckCircle, XCircle, MessageSquareText, MapPin, Phone, Mail, BookOpen } from "lucide-react"; // Adicionado BookOpen
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
@@ -21,7 +21,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Database } from "@/integrations/supabase/types";
 import { WhatsappTranscriptionsPage } from "@/pages/WhatsappTranscriptionsPage";
-import { DoctorFormResponsesTab } from "@/components/DoctorFormResponsesTab"; // Importar o novo componente
+import { DoctorFormResponsesTab } from "@/components/DoctorFormResponsesTab";
+import { DoctorMedicalRecordsTab } from "@/components/doctor/DoctorMedicalRecordsTab"; // Importar o novo componente
 
 const Doctor = () => {
   const navigate = useNavigate();
@@ -463,8 +464,8 @@ const Doctor = () => {
               <Users className="h-4 w-4 mr-2" />
               Pacientes
             </TabsTrigger>
-            <TabsTrigger value="records" className="px-3 py-2 text-sm whitespace-nowrap md:w-auto md:px-6 md:py-3 md:text-base">
-              <FileText className="h-4 w-4 mr-2" />
+            <TabsTrigger value="medical-records" className="px-3 py-2 text-sm whitespace-nowrap md:w-auto md:px-6 md:py-3 md:text-base">
+              <BookOpen className="h-4 w-4 mr-2" /> {/* Novo ícone */}
               Prontuários
             </TabsTrigger>
             <TabsTrigger value="online-consultation" className="px-3 py-2 text-sm whitespace-nowrap md:w-auto md:px-6 md:py-3 md:text-base">
@@ -535,6 +536,19 @@ const Doctor = () => {
                 </CardContent>
               </Card>
 
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab("medical-records")}> {/* Novo Card */}
+                <CardHeader>
+                  <BookOpen className="h-8 w-8 mb-2 text-primary" />
+                  <CardTitle>Prontuários</CardTitle>
+                  <CardDescription>
+                    Acesse e edite prontuários e sessões dos pacientes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full" variant="outline">Ver Prontuários</Button>
+                </CardContent>
+              </Card>
+
               <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab("online-consultation")}>
                 <CardHeader>
                   <Video className="h-8 w-8 mb-2 text-primary" />
@@ -545,19 +559,6 @@ const Doctor = () => {
                 </CardHeader>
                 <CardContent>
                   <Button className="w-full" variant="outline">Iniciar Consulta</Button>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveTab("records")}>
-                <CardHeader>
-                  <FileText className="h-8 w-8 mb-2 text-primary" />
-                  <CardTitle>Prontuários</CardTitle>
-                  <CardDescription>
-                    Acesse e edite prontuários dos pacientes
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button className="w-full" variant="outline">Ver Prontuários</Button>
                 </CardContent>
               </Card>
 
@@ -874,16 +875,8 @@ const Doctor = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="records">
-            <Card>
-              <CardHeader>
-                <CardTitle>Prontuários Médicos</CardTitle>
-                <CardDescription>Histórico de atendimentos</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Funcionalidade em desenvolvimento</p>
-              </CardContent>
-            </Card>
+          <TabsContent value="medical-records"> {/* Nova Aba de Prontuários */}
+            {user && <DoctorMedicalRecordsTab currentUserId={user.id} />}
           </TabsContent>
 
           <TabsContent value="online-consultation">

@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox"; // Importar Checkbox
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { BRAZILIAN_STATES } from "@/lib/brazilian-states";
 import { formatWhatsApp, unformatPhone } from "@/lib/format-phone";
+import { useQuery } from "@tanstack/react-query"; // Importar useQuery
 
 interface EditPatientDialogProps {
   patient: any;
@@ -33,12 +35,31 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
     state: "",
     zip_code: "",
     birth_date: "",
+    // Novos campos terapêuticos
+    mental_health_history: "",
+    main_complaints: "",
+    previous_diagnoses: "",
+    current_medications: "",
+    past_sessions_history: "",
+    therapist_id: "", // ID do terapeuta principal
+    consent_status: false,
+    consent_date: "",
   });
   const [cities, setCities] = useState<string[]>([]);
   const [loadingCities, setLoadingCities] = useState(false);
   const [doctorNotes, setDoctorNotes] = useState("");
   const [existingNotes, setExistingNotes] = useState<any[]>([]);
   const [loadingNotes, setLoadingNotes] = useState(false);
+
+  // Query para buscar a lista de doutores
+  const { data: doctors, isLoading: isLoadingDoctors } = useQuery({
+    queryKey: ["doctors"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_doctors_public");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   useEffect(() => {
     if (patient && open) {
@@ -53,10 +74,18 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
         state: patient.state || "",
         zip_code: patient.zip_code || "",
         birth_date: patient.birth_date ? format(new Date(patient.birth_date), "yyyy-MM-dd") : "",
+        // Preencher novos campos
+        mental_health_history: patient.mental_health_history || "",
+        main_complaints: patient.main_complaints || "",
+        previous_diagnoses: patient.previous_diagnoses || "",
+        current_medications: patient.current_medications || "",
+        past_sessions_history: patient.past_sessions_history || "",
+        therapist_id: patient.therapist_id || "",
+        consent_status: patient.consent_status || false,
+        consent_date: patient.consent_date ? format(new Date(patient.consent_date), "yyyy-MM-dd") : "",
       });
       fetchDoctorNotes();
       
-      // Load cities if state exists
       if (patient.state) {
         fetchCities(patient.state);
       }
@@ -104,7 +133,7 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
 
     try {
       // Update profile
-      const { data, error: profileError } = await (supabase as any)
+      const { error: profileError } = await (supabase as any)
         .from('profiles')
         .update({
           full_name: formData.full_name,
@@ -117,16 +146,23 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
           state: formData.state,
           zip_code: formData.zip_code,
           birth_date: formData.birth_date || null,
+          // Novos campos
+          mental_health_history: formData.mental_health_history || null,
+          main_complaints: formData.main_complaints || null,
+          previous_diagnoses: formData.previous_diagnoses || null,
+          current_medications: formData.current_medications || null,
+          past_sessions_history: formData.past_sessions_history || null,
+          therapist_id: formData.therapist_id || null,
+          consent_status: formData.consent_status,
+          consent_date: formData.consent_status ? (formData.consent_date || new Date().toISOString()) : null,
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', patient.id)
-        .select();
+        .eq('id', patient.id);
 
       if (profileError) {
         console.error('Profile update error:', profileError);
         throw profileError;
       }
-
-      console.log('Profile updated successfully:', data);
 
       // Add doctor note if there's text
       if (doctorNotes.trim()) {
@@ -150,10 +186,8 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
         description: "Dados do paciente atualizados com sucesso!",
       });
 
-      // Call the callback to refresh patient list
       await onPatientUpdated();
       
-      // Close dialog and reset notes
       onOpenChange(false);
       setDoctorNotes("");
     } catch (error: any) {
@@ -179,6 +213,7 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <h3 className="font-semibold text-lg mt-4">Informações Pessoais</h3>
           <div className="space-y-2">
             <Label htmlFor="full_name">Nome Completo *</Label>
             <Input
@@ -225,89 +260,180 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
             />
           </div>
 
-          <div className="space-y-4">
-            <h3 className="font-medium">Endereço</h3>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="zip_code">CEP</Label>
-                <Input
-                  id="zip_code"
-                  value={formData.zip_code}
-                  onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
-                  placeholder="00000-000"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="state">Estado</Label>
-                <Select value={formData.state} onValueChange={handleStateChange}>
-                  <SelectTrigger id="state" className="bg-background">
-                    <SelectValue placeholder="Selecione o estado" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background z-50">
-                    {BRAZILIAN_STATES.map((state) => (
-                      <SelectItem key={state.code} value={state.code}>
-                        {state.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          <h3 className="font-semibold text-lg mt-8">Endereço</h3>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="zip_code">CEP</Label>
+              <Input
+                id="zip_code"
+                value={formData.zip_code}
+                onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
+                placeholder="00000-000"
+              />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="city">Cidade</Label>
-              <Select 
-                value={formData.city} 
-                onValueChange={(value) => setFormData({ ...formData, city: value })}
-                disabled={!formData.state || loadingCities}
-              >
-                <SelectTrigger id="city" className="bg-background">
-                  <SelectValue placeholder={loadingCities ? "Carregando cidades..." : "Selecione a cidade"} />
+              <Label htmlFor="state">Estado</Label>
+              <Select value={formData.state} onValueChange={handleStateChange}>
+                <SelectTrigger id="state" className="bg-background">
+                  <SelectValue placeholder="Selecione o estado" />
                 </SelectTrigger>
-                <SelectContent className="bg-background z-50 max-h-[300px]">
-                  {cities.map((city) => (
-                    <SelectItem key={city} value={city}>
-                      {city}
+                <SelectContent className="bg-background z-50">
+                  {BRAZILIAN_STATES.map((state) => (
+                    <SelectItem key={state.code} value={state.code}>
+                      {state.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="city">Cidade</Label>
+            <Select 
+              value={formData.city} 
+              onValueChange={(value) => setFormData({ ...formData, city: value })}
+              disabled={!formData.state || loadingCities}
+            >
+              <SelectTrigger id="city" className="bg-background">
+                <SelectValue placeholder={loadingCities ? "Carregando cidades..." : "Selecione a cidade"} />
+              </SelectTrigger>
+              <SelectContent className="bg-background z-50 max-h-[300px]">
+                {cities.map((city) => (
+                  <SelectItem key={city} value={city}>
+                    {city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="street">Rua/Avenida</Label>
+            <Input
+              id="street"
+              value={formData.street}
+              onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+              placeholder="Nome da rua ou avenida"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="street">Rua/Avenida</Label>
+              <Label htmlFor="street_number">Número</Label>
               <Input
-                id="street"
-                value={formData.street}
-                onChange={(e) => setFormData({ ...formData, street: e.target.value })}
-                placeholder="Nome da rua ou avenida"
+                id="street_number"
+                value={formData.street_number}
+                onChange={(e) => setFormData({ ...formData, street_number: e.target.value })}
+                placeholder="123"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="street_number">Número</Label>
-                <Input
-                  id="street_number"
-                  value={formData.street_number}
-                  onChange={(e) => setFormData({ ...formData, street_number: e.target.value })}
-                  placeholder="123"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="neighborhood">Bairro</Label>
-                <Input
-                  id="neighborhood"
-                  value={formData.neighborhood}
-                  onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
-                  placeholder="Nome do bairro"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="neighborhood">Bairro</Label>
+              <Input
+                id="neighborhood"
+                value={formData.neighborhood}
+                onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
+                placeholder="Nome do bairro"
+              />
             </div>
           </div>
+
+          <h3 className="font-semibold text-lg mt-8">Informações Terapêuticas</h3>
+          <div className="space-y-2">
+            <Label htmlFor="mental_health_history">Histórico de Saúde Mental</Label>
+            <Textarea
+              id="mental_health_history"
+              value={formData.mental_health_history}
+              onChange={(e) => setFormData({ ...formData, mental_health_history: e.target.value })}
+              placeholder="Histórico de saúde mental do paciente..."
+              rows={3}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="main_complaints">Queixas Principais</Label>
+            <Textarea
+              id="main_complaints"
+              value={formData.main_complaints}
+              onChange={(e) => setFormData({ ...formData, main_complaints: e.target.value })}
+              placeholder="Queixas principais do paciente..."
+              rows={3}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="previous_diagnoses">Diagnósticos Anteriores</Label>
+            <Textarea
+              id="previous_diagnoses"
+              value={formData.previous_diagnoses}
+              onChange={(e) => setFormData({ ...formData, previous_diagnoses: e.target.value })}
+              placeholder="Diagnósticos anteriores (se houver)..."
+              rows={3}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="current_medications">Medicamentos Atuais</Label>
+            <Textarea
+              id="current_medications"
+              value={formData.current_medications}
+              onChange={(e) => setFormData({ ...formData, current_medications: e.target.value })}
+              placeholder="Medicamentos que o paciente está tomando atualmente..."
+              rows={3}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="past_sessions_history">Histórico de Sessões Passadas (Resumo)</Label>
+            <Textarea
+              id="past_sessions_history"
+              value={formData.past_sessions_history}
+              onChange={(e) => setFormData({ ...formData, past_sessions_history: e.target.value })}
+              placeholder="Resumo do histórico de sessões passadas (se houver registros externos)..."
+              rows={3}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="therapist_id">Terapeuta Principal</Label>
+            <Select
+              value={formData.therapist_id}
+              onValueChange={(value) => setFormData({ ...formData, therapist_id: value })}
+              disabled={isLoadingDoctors}
+            >
+              <SelectTrigger id="therapist_id" className="bg-background">
+                <SelectValue placeholder={isLoadingDoctors ? "Carregando terapeutas..." : "Selecione um terapeuta"} />
+              </SelectTrigger>
+              <SelectContent className="bg-background z-50">
+                {doctors?.map((doctor) => (
+                  <SelectItem key={doctor.id} value={doctor.id}>
+                    {doctor.full_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <h3 className="font-semibold text-lg mt-8">Termo de Consentimento</h3>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="consent_status"
+              checked={formData.consent_status}
+              onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, consent_status: checked as boolean }))}
+            />
+            <Label htmlFor="consent_status">Consentimento Assinado</Label>
+          </div>
+          {formData.consent_status && (
+            <div className="space-y-2">
+              <Label htmlFor="consent_date">Data do Consentimento</Label>
+              <Input
+                id="consent_date"
+                type="date"
+                value={formData.consent_date}
+                onChange={(e) => setFormData({ ...formData, consent_date: e.target.value })}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Adicionar Observação Médica</Label>
