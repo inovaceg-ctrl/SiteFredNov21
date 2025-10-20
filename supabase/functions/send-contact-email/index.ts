@@ -21,7 +21,20 @@ serve(async (req) => {
       throw new Error('Variáveis de ambiente do SendGrid ou e-mails não configurados.');
     }
 
-    const { name, email, phone, content, created_at } = record;
+    const { 
+      name, 
+      email, 
+      phone, 
+      whatsapp, // Novo campo
+      date_of_birth, // Novo campo
+      zip_code, // Novo campo
+      state, // Novo campo
+      city, // Novo campo
+      receive_email_newsletter, // Novo campo
+      receive_whatsapp_newsletter, // Novo campo
+      content, 
+      created_at 
+    } = record;
 
     const emailBody = `
       Nova mensagem do formulário de contato:
@@ -29,6 +42,13 @@ serve(async (req) => {
       Nome: ${name || 'Não Informado'}
       Email: ${email || 'Não Informado'}
       Telefone: ${phone || 'Não Informado'}
+      WhatsApp: ${whatsapp || 'Não Informado'}
+      Data de Nascimento: ${date_of_birth ? new Date(date_of_birth).toLocaleDateString('pt-BR') : 'Não Informado'}
+      CEP: ${zip_code || 'Não Informado'}
+      Estado: ${state || 'Não Informado'}
+      Cidade: ${city || 'Não Informado'}
+      Receber informativo por E-mail: ${receive_email_newsletter ? 'Sim' : 'Não'}
+      Receber informativo por WhatsApp: ${receive_whatsapp_newsletter ? 'Sim' : 'Não'}
       Mensagem:
       ${content}
 

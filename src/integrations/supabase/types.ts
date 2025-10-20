@@ -548,6 +548,13 @@ export type Database = {
           content: string;
           is_read: boolean;
           created_at: string;
+          date_of_birth: string | null;
+          whatsapp: string | null;
+          zip_code: string | null;
+          state: string | null;
+          city: string | null;
+          receive_email_newsletter: boolean | null;
+          receive_whatsapp_newsletter: boolean | null;
         };
         Insert: {
           id?: string;
@@ -557,6 +564,13 @@ export type Database = {
           content: string;
           is_read?: boolean;
           created_at?: string;
+          date_of_birth?: string | null;
+          whatsapp?: string | null;
+          zip_code?: string | null;
+          state?: string | null;
+          city?: string | null;
+          receive_email_newsletter?: boolean | null;
+          receive_whatsapp_newsletter?: boolean | null;
         };
         Update: {
           id?: string;
@@ -566,6 +580,13 @@ export type Database = {
           content?: string;
           is_read?: boolean;
           created_at?: string;
+          date_of_birth?: string | null;
+          whatsapp?: string | null;
+          zip_code?: string | null;
+          state?: string | null;
+          city?: string | null;
+          receive_email_newsletter?: boolean | null;
+          receive_whatsapp_newsletter?: boolean | null;
         };
         Relationships: [];
       };
@@ -732,7 +753,6 @@ export type TablesUpdate<
     | keyof Database["public"]["Tables"]
     | { schema: "public", table: infer T }
 > = PublicTableNameOrOptions extends { schema: "public", table: infer T }
-  ? T extends keyof Database["public"]["Tables"]
     ? Database["public"]["Tables"][T]["Update"]
     : never
   : PublicTableNameOrOptions extends keyof Database["public"]["Tables"]
