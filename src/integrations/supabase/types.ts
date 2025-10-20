@@ -94,6 +94,15 @@ export type Database = {
           is_doctor: boolean | null;
           is_public: boolean | null;
           birth_date: string | null;
+          // Novas colunas adicionadas
+          mental_health_history: string | null;
+          main_complaints: string | null;
+          previous_diagnoses: string | null;
+          current_medications: string | null;
+          past_sessions_history: string | null;
+          therapist_id: string | null;
+          consent_status: boolean | null;
+          consent_date: string | null;
         };
         Insert: {
           id: string;
@@ -115,6 +124,15 @@ export type Database = {
           is_doctor?: boolean | null;
           is_public?: boolean | null;
           birth_date?: string | null;
+          // Novas colunas adicionadas
+          mental_health_history?: string | null;
+          main_complaints?: string | null;
+          previous_diagnoses?: string | null;
+          current_medications?: string | null;
+          past_sessions_history?: string | null;
+          therapist_id?: string | null;
+          consent_status?: boolean | null;
+          consent_date?: string | null;
         };
         Update: {
           id?: string;
@@ -136,6 +154,15 @@ export type Database = {
           is_doctor?: boolean | null;
           is_public?: boolean | null;
           birth_date?: string | null;
+          // Novas colunas adicionadas
+          mental_health_history?: string | null;
+          main_complaints?: string | null;
+          previous_diagnoses?: string | null;
+          current_medications?: string | null;
+          past_sessions_history?: string | null;
+          therapist_id?: string | null;
+          consent_status?: boolean | null;
+          consent_date?: string | null;
         };
         Relationships: [
           {
@@ -590,6 +617,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      sessions: {
+        Row: {
+          id: string;
+          patient_id: string;
+          therapist_id: string;
+          session_date: string;
+          session_theme: string | null;
+          interventions_used: string | null;
+          notes: string | null;
+          homework: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          patient_id: string;
+          therapist_id: string;
+          session_date: string;
+          session_theme?: string | null;
+          interventions_used?: string | null;
+          notes?: string | null;
+          homework?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          patient_id?: string;
+          therapist_id?: string;
+          session_date?: string;
+          session_theme?: string | null;
+          interventions_used?: string | null;
+          notes?: string | null;
+          homework?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sessions_patient_id_fkey";
+            columns: ["patient_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sessions_therapist_id_fkey";
+            columns: ["therapist_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -629,6 +710,15 @@ export type Database = {
           is_doctor: boolean | null;
           is_public: boolean | null;
           birth_date: string | null;
+          // Novas colunas adicionadas
+          mental_health_history: string | null;
+          main_complaints: string | null;
+          previous_diagnoses: string | null;
+          current_medications: string | null;
+          past_sessions_history: string | null;
+          therapist_id: string | null;
+          consent_status: boolean | null;
+          consent_date: string | null;
         }[];
       };
       has_role: {
