@@ -37,9 +37,9 @@ interface DoctorProfileFormProps {
 export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFormProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [cities, setCities] = useState<string[]>([]);
-  const [loadingCities, setLoadingCities] = useState(false);
-  const [isFetchingCep, setIsFetchingCep] = useState(false); // Novo estado para CEP
+  const [cities, setCities] = useState<string[]>([]); // Mantido para o Select de cidade, mas será preenchido automaticamente
+  const [loadingCities, setLoadingCities] = useState(false); // Mantido para o Select de cidade
+  const [isFetchingCep, setIsFetchingCep] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -85,6 +85,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
           state: data.state || "",
           zip_code: data.zip_code || "",
         });
+        // Se houver estado no perfil, buscar as cidades para preencher o Select
         if (data.state) {
           fetchCities(data.state);
         }
@@ -115,7 +116,7 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
 
   const handleZipCodeLookup = async (cep: string) => {
     const cleanedCep = cep.replace(/\D/g, '');
-    form.setValue("zip_code", cleanedCep); // Atualiza o campo CEP no formulário
+    form.setValue("zip_code", cleanedCep);
 
     if (cleanedCep.length === 8) {
       setIsFetchingCep(true);
@@ -131,11 +132,11 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
           });
           form.setValue("state", "");
           form.setValue("city", "");
-          setCities([]);
+          setCities([]); // Limpa as cidades se o CEP não for encontrado
         } else {
           form.setValue("state", data.uf);
           form.setValue("city", data.localidade);
-          fetchCities(data.uf); // Carrega as cidades para o estado encontrado
+          fetchCities(data.uf); // Busca as cidades para o estado encontrado para o Select
         }
       } catch (error) {
         console.error("Erro ao buscar CEP:", error);
@@ -306,24 +307,14 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Estado</FormLabel>
-                  <Select onValueChange={(value) => {
-                    field.onChange(value);
-                    form.setValue("city", ""); // Reset city when state changes
-                    fetchCities(value);
-                  }} value={field.value} disabled={isFetchingCep}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o estado" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {BRAZILIAN_STATES.map((state) => (
-                        <SelectItem key={state.code} value={state.code}>
-                          {state.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <Input
+                      placeholder="Estado"
+                      readOnly
+                      disabled={isFetchingCep}
+                      {...field}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -334,20 +325,14 @@ export function DoctorProfileForm({ userId, onProfileUpdated }: DoctorProfileFor
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Cidade</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} disabled={!form.watch("state") || loadingCities || isFetchingCep}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={loadingCities ? "Carregando cidades..." : "Selecione a cidade"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="max-h-[200px]">
-                      {cities.map((city) => (
-                        <SelectItem key={city} value={city}>
-                          {city}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <Input
+                      placeholder="Cidade"
+                      readOnly
+                      disabled={isFetchingCep}
+                      {...field}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

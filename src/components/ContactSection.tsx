@@ -323,6 +323,7 @@ const ContactSection = () => {
                     className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="Estado"
                     readOnly // Preenchido automaticamente
+                    disabled={isFetchingCep} // Desabilitado durante a busca
                   />
                 </div>
               </div>
@@ -339,6 +340,7 @@ const ContactSection = () => {
                   className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Cidade"
                   readOnly // Preenchido automaticamente
+                  disabled={isFetchingCep} // Desabilitado durante a busca
                 />
               </div>
 
