@@ -43,6 +43,16 @@ export const DoctorMedicalRecordsTab: React.FC<DoctorMedicalRecordsTabProps> = (
     },
   });
 
+  // Query para buscar a lista de doutores (adicionado para resolver o erro)
+  const { data: doctors, isLoading: isLoadingDoctors } = useQuery({
+    queryKey: ["doctors"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_doctors_public");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Fetch selected patient's full profile (including new therapeutic fields)
   const { data: selectedPatientProfile, isLoading: isLoadingSelectedPatient } = useQuery({
     queryKey: ["patientProfile", selectedPatientId],
@@ -115,7 +125,7 @@ export const DoctorMedicalRecordsTab: React.FC<DoctorMedicalRecordsTabProps> = (
     }
   };
 
-  if (isLoadingPatients) {
+  if (isLoadingPatients || isLoadingDoctors) { // Adicionado isLoadingDoctors aqui
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
