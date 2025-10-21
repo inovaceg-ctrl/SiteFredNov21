@@ -92,22 +92,36 @@ export const DoctorMedicalRecordsTab: React.FC<DoctorMedicalRecordsTabProps> = (
       return;
     }
 
+    if (!currentUserId) {
+      toast({ title: "Erro", description: "ID do doutor não disponível. Por favor, faça login novamente.", variant: "destructive" });
+      return;
+    }
+
     setAddingSession(true);
     try {
-      const { error } = await supabase
+      const sessionToInsert = {
+        patient_id: selectedPatientId,
+        therapist_id: currentUserId,
+        session_date: new Date(newSessionData.session_date).toISOString(),
+        session_theme: newSessionData.session_theme || null,
+        interventions_used: newSessionData.interventions_used || null,
+        notes: newSessionData.notes || null,
+        homework: newSessionData.homework || null,
+      };
+
+      console.log("Attempting to insert session with data:", sessionToInsert);
+
+      const { data, error } = await supabase
         .from('sessions')
-        .insert({
-          patient_id: selectedPatientId,
-          therapist_id: currentUserId,
-          session_date: new Date(newSessionData.session_date).toISOString(),
-          session_theme: newSessionData.session_theme || null,
-          interventions_used: newSessionData.interventions_used || null,
-          notes: newSessionData.notes || null,
-          homework: newSessionData.homework || null,
-        });
+        .insert(sessionToInsert)
+        .select(); // Adicionado .select() para obter os dados inseridos de volta
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase insert error:", error);
+        throw error;
+      }
 
+      console.log("Session inserted successfully:", data);
       toast({ title: "Sucesso", description: "Sessão registrada com sucesso!" });
       setNewSessionData({
         session_date: "",
@@ -118,7 +132,7 @@ export const DoctorMedicalRecordsTab: React.FC<DoctorMedicalRecordsTabProps> = (
       });
       queryClient.invalidateQueries({ queryKey: ["patientSessions", selectedPatientId] }); // Refetch sessions
     } catch (error: any) {
-      console.error("Error adding session:", error);
+      console.error("Error adding session in catch block:", error);
       toast({ title: "Erro", description: error.message || "Não foi possível registrar a sessão.", variant: "destructive" });
     } finally {
       setAddingSession(false);
