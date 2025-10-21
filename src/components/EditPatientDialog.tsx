@@ -101,12 +101,14 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
             description: "Verifique o CEP digitado e tente novamente.",
             variant: "destructive",
           });
-          setFormData((prev) => ({ ...prev, state: "", city: "" }));
+          setFormData((prev) => ({ ...prev, state: "", city: "", street: "", neighborhood: "" }));
         } else {
           setFormData((prev) => ({
             ...prev,
             state: data.uf,
             city: data.localidade,
+            street: data.logradouro, // Preenche o nome da rua
+            neighborhood: data.bairro, // Preenche o bairro
           }));
         }
       } catch (error) {
@@ -116,12 +118,12 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
           description: "Não foi possível buscar o CEP. Tente novamente mais tarde.",
           variant: "destructive",
         });
-        setFormData((prev) => ({ ...prev, state: "", city: "" }));
+        setFormData((prev) => ({ ...prev, state: "", city: "", street: "", neighborhood: "" }));
       } finally {
         setIsFetchingCep(false);
       }
     } else if (cleanedCep.length < 8) {
-      setFormData((prev) => ({ ...prev, state: "", city: "" }));
+      setFormData((prev) => ({ ...prev, state: "", city: "", street: "", neighborhood: "" }));
     }
   };
 
@@ -320,6 +322,7 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
               value={formData.street}
               onChange={(e) => setFormData({ ...formData, street: e.target.value })}
               placeholder="Nome da rua ou avenida"
+              readOnly // Adicionado readOnly
               disabled={isFetchingCep}
             />
           </div>
@@ -343,6 +346,7 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
                 value={formData.neighborhood}
                 onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
                 placeholder="Nome do bairro"
+                readOnly // Adicionado readOnly
                 disabled={isFetchingCep}
               />
             </div>
