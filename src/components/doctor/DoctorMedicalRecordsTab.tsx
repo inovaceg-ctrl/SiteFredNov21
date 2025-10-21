@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, User, CalendarDays, BookOpen, MessageSquareText, ClipboardList, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, User, CalendarDays, BookOpen, MessageSquareText, ClipboardList, CheckCircle, XCircle, Stethoscope, FileMedical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -15,6 +15,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 type PatientProfile = Database['public']['Tables']['profiles']['Row'];
 type Session = Database['public']['Tables']['sessions']['Row'];
+type MedicalRecord = Database['public']['Tables']['medical_records']['Row'];
 
 interface DoctorMedicalRecordsTabProps {
   currentUserId: string;
@@ -32,6 +33,13 @@ export const DoctorMedicalRecordsTab: React.FC<DoctorMedicalRecordsTabProps> = (
     homework: "",
   });
   const [addingSession, setAddingSession] = useState(false);
+
+  const [newMedicalRecordData, setNewMedicalRecordData] = useState({
+    diagnosis: "",
+    prescription: "",
+    notes: "",
+  });
+  const [addingMedicalRecord, setAddingMedicalRecord] = useState(false);
 
   // Fetch all patients for the doctor
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
@@ -79,6 +87,22 @@ export const DoctorMedicalRecordsTab: React.FC<DoctorMedicalRecordsTabProps> = (
         .select('*')
         .eq('patient_id', selectedPatientId)
         .order('session_date', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedPatientId,
+  });
+
+  // Fetch medical records for the selected patient
+  const { data: patientMedicalRecords, isLoading: isLoadingMedicalRecords } = useQuery({
+    queryKey: ["patientMedicalRecords", selectedPatientId],
+    queryFn: async () => {
+      if (!selectedPatientId) return [];
+      const { data, error } = await supabase
+        .from('medical_records')
+        .select('*')
+        .eq('patient_id', selectedPatientId)
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -139,7 +163,57 @@ export const DoctorMedicalRecordsTab: React.FC<DoctorMedicalRecordsTabProps> = (
     }
   };
 
-  if (isLoadingPatients || isLoadingDoctors) { // Adicionado isLoadingDoctors aqui
+  const handleAddMedicalRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPatientId || (!newMedicalRecordData.diagnosis && !newMedicalRecordData.prescription && !newMedicalRecordData.notes)) {
+      toast({ title: "Erro", description: "Preencha ao menos um campo (diagnóstico, prescrição ou notas) para o prontuário.", variant: "destructive" });
+      return;
+    }
+
+    if (!currentUserId) {
+      toast({ title: "Erro", description: "ID do doutor não disponível. Por favor, faça login novamente.", variant: "destructive" });
+      return;
+    }
+
+    setAddingMedicalRecord(true);
+    try {
+      const recordToInsert = {
+        patient_id: selectedPatientId,
+        doctor_id: currentUserId,
+        diagnosis: newMedicalRecordData.diagnosis || null,
+        prescription: newMedicalRecordData.prescription || null,
+        notes: newMedicalRecordData.notes || null,
+      };
+
+      console.log("Attempting to insert medical record with data:", recordToInsert);
+
+      const { data, error } = await supabase
+        .from('medical_records')
+        .insert(recordToInsert)
+        .select();
+
+      if (error) {
+        console.error("Supabase medical record insert error:", error);
+        throw error;
+      }
+
+      console.log("Medical record inserted successfully:", data);
+      toast({ title: "Sucesso", description: "Prontuário médico registrado com sucesso!" });
+      setNewMedicalRecordData({
+        diagnosis: "",
+        prescription: "",
+        notes: "",
+      });
+      queryClient.invalidateQueries({ queryKey: ["patientMedicalRecords", selectedPatientId] }); // Refetch medical records
+    } catch (error: any) {
+      console.error("Error adding medical record in catch block:", error);
+      toast({ title: "Erro", description: error.message || "Não foi possível registrar o prontuário médico.", variant: "destructive" });
+    } finally {
+      setAddingMedicalRecord(false);
+    }
+  };
+
+  if (isLoadingPatients || isLoadingDoctors) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -217,7 +291,7 @@ export const DoctorMedicalRecordsTab: React.FC<DoctorMedicalRecordsTabProps> = (
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-primary" />
-                Registrar Nova Sessão
+                Registrar Nova Sessão de Terapia
               </CardTitle>
               <CardDescription>Adicione os detalhes de uma nova sessão de terapia.</CardDescription>
             </CardHeader>
@@ -280,14 +354,62 @@ export const DoctorMedicalRecordsTab: React.FC<DoctorMedicalRecordsTabProps> = (
             </CardContent>
           </Card>
 
+          {/* Add New Medical Record Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileMedical className="h-5 w-5 text-primary" />
+                Registrar Prontuário Médico
+              </CardTitle>
+              <CardDescription>Adicione um novo diagnóstico, prescrição ou notas gerais.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAddMedicalRecord} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="diagnosis">Diagnóstico</Label>
+                  <Input
+                    id="diagnosis"
+                    value={newMedicalRecordData.diagnosis}
+                    onChange={(e) => setNewMedicalRecordData({ ...newMedicalRecordData, diagnosis: e.target.value })}
+                    placeholder="Ex: Transtorno de Ansiedade Generalizada"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="prescription">Prescrição</Label>
+                  <Textarea
+                    id="prescription"
+                    value={newMedicalRecordData.prescription}
+                    onChange={(e) => setNewMedicalRecordData({ ...newMedicalRecordData, prescription: e.target.value })}
+                    placeholder="Medicamentos, dosagem, frequência..."
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="medical_notes">Notas Médicas Gerais</Label>
+                  <Textarea
+                    id="medical_notes"
+                    value={newMedicalRecordData.notes}
+                    onChange={(e) => setNewMedicalRecordData({ ...newMedicalRecordData, notes: e.target.value })}
+                    placeholder="Observações gerais sobre o estado de saúde do paciente..."
+                    rows={4}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={addingMedicalRecord}>
+                  {addingMedicalRecord && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Registrar Prontuário
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
           {/* Sessions History Card */}
-          <Card className="lg:col-span-2">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ClipboardList className="h-5 w-5 text-primary" />
-                Histórico de Sessões
+                Histórico de Sessões de Terapia
               </CardTitle>
-              <CardDescription>Todas as sessões registradas para este paciente.</CardDescription>
+              <CardDescription>Todas as sessões de terapia registradas para este paciente.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 max-h-[500px] overflow-y-auto scrollbar-hide">
               {isLoadingSessions ? (
@@ -307,6 +429,36 @@ export const DoctorMedicalRecordsTab: React.FC<DoctorMedicalRecordsTabProps> = (
                 ))
               ) : (
                 <p className="text-muted-foreground text-center py-4">Nenhuma sessão registrada para este paciente.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Medical Records History Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Stethoscope className="h-5 w-5 text-primary" />
+                Histórico de Prontuários Médicos
+              </CardTitle>
+              <CardDescription>Todos os prontuários médicos gerais registrados para este paciente.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 max-h-[500px] overflow-y-auto scrollbar-hide">
+              {isLoadingMedicalRecords ? (
+                <div className="flex justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>
+              ) : patientMedicalRecords && patientMedicalRecords.length > 0 ? (
+                patientMedicalRecords.map((record) => (
+                  <div key={record.id} className="border rounded-lg p-4 space-y-2">
+                    <p className="font-semibold text-lg flex items-center gap-2">
+                      <CalendarDays className="h-5 w-5 text-muted-foreground" />
+                      {format(new Date(record.created_at!), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                    {record.diagnosis && <p><span className="font-medium">Diagnóstico:</span> {record.diagnosis}</p>}
+                    {record.prescription && <p><span className="font-medium">Prescrição:</span> {record.prescription}</p>}
+                    {record.notes && <p><span className="font-medium">Notas:</span> {record.notes}</p>}
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground text-center py-4">Nenhum prontuário médico registrado para este paciente.</p>
               )}
             </CardContent>
           </Card>
