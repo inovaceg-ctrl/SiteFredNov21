@@ -5,14 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox"; // Importar Checkbox
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { BRAZILIAN_STATES } from "@/lib/brazilian-states";
-import { formatPhone, unformatPhone } from "@/lib/format-phone"; // Importar formatPhone
-import { useQuery } from "@tanstack/react-query"; // Importar useQuery
+import { formatPhone, unformatPhone } from "@/lib/format-phone";
+import { useQuery } from "@tanstack/react-query";
 
 interface EditPatientDialogProps {
   patient: any;
@@ -35,18 +35,16 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
     state: "",
     zip_code: "",
     birth_date: "",
-    // Novos campos terapêuticos
     mental_health_history: "",
     main_complaints: "",
     previous_diagnoses: "",
     current_medications: "",
     past_sessions_history: "",
-    therapist_id: "", // ID do terapeuta principal
+    therapist_id: "",
     consent_status: false,
     consent_date: "",
   });
-  const [cities, setCities] = useState<string[]>([]);
-  const [loadingCities, setLoadingCities] = useState(false);
+  const [isFetchingCep, setIsFetchingCep] = useState(false); // Novo estado para CEP
   const [doctorNotes, setDoctorNotes] = useState("");
   const [existingNotes, setExistingNotes] = useState<any[]>([]);
   const [loadingNotes, setLoadingNotes] = useState(false);
@@ -74,7 +72,6 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
         state: patient.state || "",
         zip_code: patient.zip_code || "",
         birth_date: patient.birth_date ? format(new Date(patient.birth_date), "yyyy-MM-dd") : "",
-        // Preencher novos campos
         mental_health_history: patient.mental_health_history || "",
         main_complaints: patient.main_complaints || "",
         previous_diagnoses: patient.previous_diagnoses || "",
@@ -85,32 +82,47 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
         consent_date: patient.consent_status ? (patient.consent_date ? format(new Date(patient.consent_date), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")) : "",
       });
       fetchDoctorNotes();
-      
-      if (patient.state) {
-        fetchCities(patient.state);
-      }
     }
   }, [patient, open]);
 
-  const fetchCities = async (stateCode: string) => {
-    setLoadingCities(true);
-    try {
-      const response = await fetch(
-        `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${stateCode}/municipios`
-      );
-      const data = await response.json();
-      setCities(data.map((city: any) => city.nome).sort());
-    } catch (error) {
-      console.error("Error fetching cities:", error);
-      setCities([]);
-    } finally {
-      setLoadingCities(false);
-    }
-  };
+  const handleZipCodeLookup = async (cep: string) => {
+    const cleanedCep = cep.replace(/\D/g, '');
+    setFormData((prev) => ({ ...prev, zip_code: cleanedCep }));
 
-  const handleStateChange = (stateCode: string) => {
-    setFormData({ ...formData, state: stateCode, city: "" });
-    fetchCities(stateCode);
+    if (cleanedCep.length === 8) {
+      setIsFetchingCep(true);
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cleanedCep}/json/`);
+        const data = await response.json();
+
+        if (data.erro) {
+          toast({
+            title: "CEP não encontrado",
+            description: "Verifique o CEP digitado e tente novamente.",
+            variant: "destructive",
+          });
+          setFormData((prev) => ({ ...prev, state: "", city: "" }));
+        } else {
+          setFormData((prev) => ({
+            ...prev,
+            state: data.uf,
+            city: data.localidade,
+          }));
+        }
+      } catch (error) {
+        console.error("Erro ao buscar CEP:", error);
+        toast({
+          title: "Erro na consulta de CEP",
+          description: "Não foi possível buscar o CEP. Tente novamente mais tarde.",
+          variant: "destructive",
+        });
+        setFormData((prev) => ({ ...prev, state: "", city: "" }));
+      } finally {
+        setIsFetchingCep(false);
+      }
+    } else if (cleanedCep.length < 8) {
+      setFormData((prev) => ({ ...prev, state: "", city: "" }));
+    }
   };
 
   const fetchDoctorNotes = async () => {
@@ -146,7 +158,6 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
           state: formData.state,
           zip_code: formData.zip_code,
           birth_date: formData.birth_date || null,
-          // Novos campos
           mental_health_history: formData.mental_health_history || null,
           main_complaints: formData.main_complaints || null,
           previous_diagnoses: formData.previous_diagnoses || null,
@@ -268,46 +279,38 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
               <Input
                 id="zip_code"
                 value={formData.zip_code}
-                onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
+                onChange={(e) => handleZipCodeLookup(e.target.value)}
+                onBlur={(e) => handleZipCodeLookup(e.target.value)} // Trigger on blur as well
                 placeholder="00000-000"
+                maxLength={9}
+                disabled={isFetchingCep}
               />
+              {isFetchingCep && <p className="text-xs text-muted-foreground mt-1">Buscando CEP...</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="state">Estado</Label>
-              <Select value={formData.state} onValueChange={handleStateChange}>
-                <SelectTrigger id="state" className="bg-background">
-                  <SelectValue placeholder="Selecione o estado" />
-                </SelectTrigger>
-                <SelectContent className="bg-background z-50">
-                  {BRAZILIAN_STATES.map((state) => (
-                    <SelectItem key={state.code} value={state.code}>
-                      {state.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="state"
+                value={formData.state}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                placeholder="Estado"
+                readOnly
+                disabled={isFetchingCep}
+              />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="city">Cidade</Label>
-            <Select 
-              value={formData.city} 
-              onValueChange={(value) => setFormData({ ...formData, city: value })}
-              disabled={!formData.state || loadingCities}
-            >
-              <SelectTrigger id="city" className="bg-background">
-                <SelectValue placeholder={loadingCities ? "Carregando cidades..." : "Selecione a cidade"} />
-              </SelectTrigger>
-              <SelectContent className="bg-background z-50 max-h-[300px]">
-                {cities.map((city) => (
-                  <SelectItem key={city} value={city}>
-                    {city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              id="city"
+              value={formData.city}
+              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              placeholder="Cidade"
+              readOnly
+              disabled={isFetchingCep}
+            />
           </div>
 
           <div className="space-y-2">
@@ -317,6 +320,7 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
               value={formData.street}
               onChange={(e) => setFormData({ ...formData, street: e.target.value })}
               placeholder="Nome da rua ou avenida"
+              disabled={isFetchingCep}
             />
           </div>
 
@@ -328,6 +332,7 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
                 value={formData.street_number}
                 onChange={(e) => setFormData({ ...formData, street_number: e.target.value })}
                 placeholder="123"
+                disabled={isFetchingCep}
               />
             </div>
 
@@ -338,6 +343,7 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
                 value={formData.neighborhood}
                 onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
                 placeholder="Nome do bairro"
+                disabled={isFetchingCep}
               />
             </div>
           </div>
@@ -472,7 +478,7 @@ export function EditPatientDialog({ patient, open, onOpenChange, onPatientUpdate
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || isFetchingCep}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Salvar Alterações
             </Button>
